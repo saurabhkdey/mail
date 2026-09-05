@@ -39,7 +39,7 @@ body {
   color: var(--gm-text-primary) !important;
 }
 
-/* 2. Top Header & App Bar */
+/* 2. Top Header & App Bar - Minimal Clean Icons */
 #layout-menu,
 .header,
 header.header,
@@ -51,34 +51,55 @@ header.header,
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
 }
 
-/* 3. Left Navigation & Sidebar */
+/* Clean up bulky top toolbar text - show sleek icons only */
+.toolbar .button span.inner,
+.header .toolbar .button span.inner,
+#mailtoolbar a.button span.inner {
+  font-size: 11px !important;
+  margin-top: 2px !important;
+}
+
+.toolbar a.button,
+.header .toolbar a.button {
+  border-radius: 8px !important;
+  padding: 6px 10px !important;
+  transition: background 0.15s ease !important;
+}
+
+/* 3. Left Navigation Rail & Compose Button */
 #layout-sidebar {
   background: var(--gm-bg-app) !important;
   border-right: 1px solid var(--gm-border-light) !important;
 }
 
-/* Gmail-Style Floating Compose Button */
+/* Fix narrow left sidebar compose button from overflowing */
 #layout-menu .compose,
-.button.compose,
-a.button.compose {
+#layout-menu a.compose,
+.button.compose {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 14px !important;
+  padding: 0 !important;
+  margin: 12px auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: var(--gm-blue-light) !important;
   color: #001d35 !important;
-  border-radius: 16px !important;
-  font-weight: 600 !important;
-  font-size: 14px !important;
-  padding: 12px 20px !important;
-  margin: 12px auto !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+#layout-menu .compose span.inner,
+#layout-menu a.compose span.inner {
+  display: none !important;
+}
+
 #layout-menu .compose:hover,
-.button.compose:hover {
+#layout-menu a.compose:hover {
   background: #b3dbf5 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
   transform: translateY(-1px);
 }
 
@@ -118,7 +139,6 @@ a.button.compose {
 
 .messagelist tr:hover td {
   background-color: #f7f9fc !important;
-  box-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0;
 }
 
 .messagelist tr.selected td {
@@ -179,7 +199,7 @@ a.button.compose {
 .gm-thread-container {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   margin-top: 12px;
 }
 
@@ -192,40 +212,53 @@ a.button.compose {
   box-shadow: var(--gm-shadow-card);
 }
 
-/* Collapsed Thread Card */
+/* Collapsed Previous Thread Card (Compact Gmail Row) */
 .gm-thread-card.gm-collapsed {
   cursor: pointer;
   background: #fbfcfe;
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  padding: 8px 16px !important;
+  min-height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
 }
 
 .gm-thread-card.gm-collapsed:hover {
-  background: var(--gm-bg-card-hover);
-  box-shadow: var(--gm-shadow-hover);
-  border-color: #c4c7c5;
+  background: var(--gm-bg-card-hover) !important;
+  box-shadow: var(--gm-shadow-hover) !important;
+  border-color: #c4c7c5 !important;
 }
 
-.gm-thread-card.gm-collapsed .gm-collapsed-snippet {
-  color: var(--gm-text-secondary);
-  font-size: 13.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
+.gm-collapsed-author {
+  font-weight: 600 !important;
+  font-size: 13.5px !important;
+  color: var(--gm-text-primary) !important;
+  white-space: nowrap !important;
+  min-width: 140px !important;
+  max-width: 220px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
-.gm-thread-card.gm-collapsed .gm-collapsed-date {
-  color: var(--gm-text-muted);
-  font-size: 12px;
-  white-space: nowrap;
+.gm-collapsed-snippet {
+  color: var(--gm-text-secondary) !important;
+  font-size: 13.5px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  flex: 1 !important;
 }
 
-/* Expanded Thread Card */
+.gm-collapsed-date {
+  color: var(--gm-text-muted) !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+/* Expanded Active Thread Card */
 .gm-thread-card.gm-expanded {
-  padding: 20px;
+  padding: 20px !important;
 }
 
 .gm-thread-header {
@@ -243,12 +276,12 @@ a.button.compose {
 
 /* Circular Vibrant Initial Avatars */
 .gm-avatar {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   color: #ffffff;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -305,7 +338,7 @@ a.button.compose {
   color: var(--gm-text-primary);
   word-break: break-word;
   white-space: pre-wrap;
-  padding-left: 52px;
+  padding-left: 50px;
 }
 
 .gm-message-body blockquote {
@@ -517,7 +550,7 @@ a.button.compose {
   font-weight: bold;
   letter-spacing: 2px;
   cursor: pointer;
-  margin: 12px 0 8px 52px;
+  margin: 12px 0 8px 50px;
   border: 1px solid transparent;
   transition: all 0.2s ease;
   user-select: none;
@@ -557,12 +590,13 @@ a.button.compose {
   }
 
   .gm-thread-card.gm-collapsed {
-    background: #28292a !important;
+    background: #252627 !important;
     border-color: #3c4043 !important;
   }
 
   .gm-thread-card.gm-collapsed:hover {
-    background: #333538 !important;
+    background: #303133 !important;
+    border-color: #5f6368 !important;
   }
 
   .bm-action-pill {
@@ -584,6 +618,11 @@ a.button.compose {
   .gm-inline-header, .gm-inline-footer {
     background: #242526 !important;
     border-color: #3c4043 !important;
+  }
+
+  .gm-inline-header .gm-reply-to {
+    background: #1a3250 !important;
+    color: #c2e7ff !important;
   }
 
   .gm-reply-textarea {

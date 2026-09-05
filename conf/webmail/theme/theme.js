@@ -73,7 +73,7 @@
     var threadContainer = document.createElement('div');
     threadContainer.className = 'gm-thread-container';
 
-    // Top Subject Row with [Inbox x]
+    // Top Subject Row with [Inbox] badge
     var subjectContainer = document.createElement('div');
     subjectContainer.className = 'gm-subject-container';
     subjectContainer.innerHTML = 
@@ -81,7 +81,7 @@
       '<span class="gm-inbox-badge">Inbox</span>';
     threadContainer.appendChild(subjectContainer);
 
-    // Parse Body for Thread Messages (Detect quoted chains)
+    // Parse Body for Thread Messages
     var rawHtml = msgBody.innerHTML;
     var rawText = msgBody.innerText || '';
 
@@ -99,7 +99,7 @@
       var avatarColor = getAvatarColor(authorName);
 
       if (isLatest) {
-        // Expanded Latest Card
+        // Expanded Latest Card (Active Email)
         card.innerHTML = 
           '<div class="gm-thread-header">' +
             '<div class="gm-author-meta">' +
@@ -126,10 +126,10 @@
           };
         }
       } else {
-        // Collapsed Previous Message Card
+        // Compact Collapsed Previous Message Card (Exact Gmail Row)
         card.innerHTML = 
-          '<div class="gm-avatar" style="width:32px; height:32px; font-size:14px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
-          '<span class="gm-author-name" style="width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + escapeHtml(authorName) + '</span>' +
+          '<div class="gm-avatar" style="width:28px; height:28px; font-size:13px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
+          '<span class="gm-collapsed-author">' + escapeHtml(authorName) + '</span>' +
           '<span class="gm-collapsed-snippet">' + escapeHtml(msg.snippet) + '</span>' +
           '<span class="gm-collapsed-date">' + escapeHtml(msg.date || '') + '</span>';
 
@@ -180,83 +180,65 @@
       card.classList.remove('gm-expanded');
       card.classList.add('gm-collapsed');
       card.innerHTML = 
-        '<div class="gm-avatar" style="width:32px; height:32px; font-size:14px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
-        '<span class="gm-author-name" style="width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + escapeHtml(authorName) + '</span>' +
+        '<div class="gm-avatar" style="width:28px; height:28px; font-size:13px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
+        '<span class="gm-collapsed-author">' + escapeHtml(authorName) + '</span>' +
         '<span class="gm-collapsed-snippet">' + escapeHtml(msg.snippet) + '</span>' +
         '<span class="gm-collapsed-date">' + escapeHtml(msg.date || '') + '</span>';
     }
   }
 
-  // Parse email body into conversation thread items
+  // Parse email body into conversation thread items cleanly
   function parseEmailThread(text, html, currentSender, currentDate) {
     var messages = [];
 
-    // Check for "On <date>, <author> wrote:" pattern
-    var onWroteRegex = /On\s+([0-9]{4}-[0-9]{2}-[0-9]{2}[^,\n]*|[^,\n]+,\s+[^\n]+)\s*,\s*([^<>\n]+(?:<[^>]+>)?)\s+wrote:/gi;
-    var matches = [];
-    var match;
-    while ((match = onWroteRegex.exec(text)) !== null) {
-      matches.push({
-        index: match.index,
-        fullMatch: match[0],
-        date: match[1].trim(),
-        author: match[2].trim()
-      });
+    // Line by line classification
+    var lines = text.split('\n');
+    var prevLines = [];
+    var newLines = [];
+    var quoteAuthor = '';
+    var quoteDate = '';
+
+    var onWroteRegex = /On\s+([0-9]{4}-[0-9]{2}-[0-9]{2}[^,\n]*|[^,\n]+,\s+[^\n]+)\s*,\s*([^<>\n]+(?:<[^>]+>)?)\s+wrote:/i;
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      var match = line.match(onWroteRegex);
+      if (match) {
+        quoteDate = match[1].trim();
+        quoteAuthor = match[2].trim();
+        continue;
+      }
+
+      // If line is quoted (starts with | or >)
+      if (/^[\s|>]+/.test(line)) {
+        var cleanQuoteLine = line.replace(/^[\s|>]+/, '').trimEnd();
+        if (cleanQuoteLine) prevLines.push(cleanQuoteLine);
+      } else if (line.trim().length > 0) {
+        newLines.push(line.trim());
+      }
     }
 
-    if (matches.length > 0) {
-      // Split text into messages
-      var firstMatch = matches[0];
-      var latestText = text.substring(0, firstMatch.index).trim();
-      var quotePart = text.substring(firstMatch.index + firstMatch.fullMatch.length).trim();
+    var prevBody = prevLines.join('\n').trim();
+    var newBody = newLines.join('\n').trim();
 
-      // Clean lines with | or > prefixes
-      var cleanedPreviousLines = quotePart.split('\n').map(function (line) {
-        return line.replace(/^[\s|>]+/, '').trimEnd();
-      });
-
-      // If reply was bottom-posted (text after quote)
-      var cleanPrevText = '';
-      var cleanLatestText = latestText;
-
-      var bottomReplyLines = [];
-      var prevLines = [];
-      var reachedBottomReply = false;
-
-      for (var i = 0; i < cleanedPreviousLines.length; i++) {
-        var rawLine = quotePart.split('\n')[i] || '';
-        if (!reachedBottomReply && !rawLine.startsWith('|') && !rawLine.startsWith('>') && rawLine.trim().length > 0) {
-          reachedBottomReply = true;
-        }
-        if (reachedBottomReply) {
-          bottomReplyLines.push(cleanedPreviousLines[i]);
-        } else {
-          prevLines.push(cleanedPreviousLines[i]);
-        }
-      }
-
-      cleanPrevText = prevLines.join('\n').trim();
-      if (bottomReplyLines.length > 0 && !cleanLatestText) {
-        cleanLatestText = bottomReplyLines.join('\n').trim();
-      }
-
-      // 1. Previous Message Card (Saurabh Kumar Dey)
+    if (prevBody && quoteAuthor) {
+      // 1. Previous Message in Thread (Saurabh Kumar Dey)
       messages.push({
-        author: firstMatch.author,
-        date: firstMatch.date,
-        snippet: cleanPrevText.substring(0, 80) || 'Previous message',
-        bodyHtml: escapeHtml(cleanPrevText)
+        author: quoteAuthor,
+        date: quoteDate || 'Previous',
+        snippet: prevBody.substring(0, 80) || 'Previous message',
+        bodyHtml: escapeHtml(prevBody)
       });
 
-      // 2. Latest Message Card
+      // 2. Latest Reply Message
       messages.push({
         author: currentSender,
         date: currentDate,
-        snippet: cleanLatestText.substring(0, 80),
-        bodyHtml: escapeHtml(cleanLatestText)
+        snippet: newBody.substring(0, 80) || newBody,
+        bodyHtml: escapeHtml(newBody)
       });
     } else {
-      // Single message (no quotes found)
+      // Single email without quoted thread
       messages.push({
         author: currentSender,
         date: currentDate,
@@ -317,14 +299,13 @@
     var pills = container.querySelector('.bm-action-pills-container');
     if (pills) pills.style.display = 'none';
 
-    var myName = 'me';
     var myAvatarColor = '#1a73e8';
 
     var replyBox = document.createElement('div');
     replyBox.className = 'gm-inline-reply-box';
     replyBox.innerHTML = 
       '<div class="gm-inline-header">' +
-        '<div class="gm-avatar" style="width:30px; height:30px; font-size:13px; background:' + myAvatarColor + '">S</div>' +
+        '<div class="gm-avatar" style="width:28px; height:28px; font-size:12px; background:' + myAvatarColor + '">S</div>' +
         '<span class="gm-reply-label">↩ Reply</span>' +
         '<span class="gm-reply-to">' + escapeHtml(recipient || 'Recipient') + '</span>' +
         '<button type="button" class="gm-inline-popout" title="Pop-out to full editor">↗</button>' +
@@ -431,7 +412,6 @@
 
     var uid = rc.env.uid || '';
     var mbox = rc.env.mailbox || 'INBOX';
-    var token = rc.env.request_token || '';
 
     // Request compose parameters first to obtain valid compose session & token
     fetch('/roundcube/?_task=mail&_action=compose&_reply_uid=' + uid + '&_mbox=' + encodeURIComponent(mbox), {
