@@ -1,0 +1,237 @@
+/* BillionMail Modern Roundcube Theme - Gmail Style Experience */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bm-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --bm-primary-color: #1a73e8;
+  --bm-primary-hover: #1557b0;
+  --bm-bg-card: #ffffff;
+  --bm-border-color: #e0e0e0;
+  --bm-pill-bg: #ffffff;
+  --bm-pill-hover: #f1f3f4;
+  --bm-pill-border: #dadce0;
+  --bm-pill-text: #3c4043;
+  --bm-header-bg: rgba(255, 255, 255, 0.85);
+}
+
+html, body, button, input, textarea, select, .rcm-theme, #layout {
+  font-family: var(--bm-font-family) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphic Header & Toolbar */
+#layout-menu,
+.header,
+header.header,
+.toolbar,
+.header > .toolbar {
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  background: var(--bm-header-bg) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Clean 3-Column Layout Styling */
+#layout-sidebar,
+#layout-list,
+#layout-content {
+  border-right: 1px solid var(--bm-border-color) !important;
+  transition: background-color 0.2s ease;
+}
+
+/* Mailbox Item Highlights */
+.messagelist tr.selected td,
+.messagelist tr:hover td,
+.records-table tr.selected td,
+.records-table tr:hover td {
+  background-color: #f2f6fc !important;
+}
+
+.messagelist tr.unread td {
+  font-weight: 600 !important;
+}
+
+/* Pill-Shaped Gmail Send Button */
+button.btn-primary.send,
+button.send,
+a.button.send,
+.mainaction.send,
+#rcmbtn100,
+.btn-primary.btn-send {
+  background: var(--bm-primary-color) !important;
+  background-color: var(--bm-primary-color) !important;
+  border: none !important;
+  border-radius: 24px !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  padding: 8px 26px !important;
+  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3), 0 2px 6px rgba(26, 115, 232, 0.2) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+button.btn-primary.send:hover,
+button.send:hover,
+a.button.send:hover,
+.mainaction.send:hover {
+  background: var(--bm-primary-hover) !important;
+  background-color: var(--bm-primary-hover) !important;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.4), 0 4px 12px rgba(26, 115, 232, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+/* Recipient Chips & Input Fields */
+.tokenfield,
+.rcm-recipient,
+.recipient-input,
+.compose-headers input[type="text"] {
+  border-radius: 12px !important;
+  border: 1px solid #dadce0 !important;
+  padding: 6px 12px !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tokenfield:focus-within,
+.compose-headers input[type="text"]:focus {
+  border-color: var(--bm-primary-color) !important;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15) !important;
+}
+
+/* Gmail-Style Bottom Action Pills */
+.bm-action-pills-container {
+  margin-top: 24px;
+  padding: 20px 0 12px 0;
+  border-top: 1px solid var(--bm-border-color);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.bm-action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 22px;
+  border-radius: 20px;
+  border: 1px solid var(--bm-pill-border);
+  background: var(--bm-pill-bg);
+  color: var(--bm-pill-text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+  text-decoration: none;
+}
+
+.bm-action-pill svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.bm-action-pill:hover {
+  background: var(--bm-pill-hover);
+  border-color: #c4c7c5;
+  color: #202124;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2);
+  transform: translateY(-1px);
+}
+
+.bm-action-pill:active {
+  transform: translateY(0);
+  background: #e8eaed;
+}
+
+/* Gmail-Style ••• Trimmed Content Toggle */
+.bm-trimmed-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #e8eaed;
+  color: #5f6368;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  cursor: pointer;
+  margin: 14px 0 8px 0;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.bm-trimmed-toggle:hover {
+  background: #dadce0;
+  color: #202124;
+  border-color: #bdc1c6;
+}
+
+.bm-trimmed-content.is-collapsed {
+  display: none !important;
+}
+
+/* Keyboard Shortcut Hint */
+.bm-shortcut-hint {
+  font-size: 11px;
+  color: #70757a;
+  margin-left: 8px;
+}
+
+/* Adaptive Dark Mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bm-bg-card: #1e1e1e;
+    --bm-border-color: #3c4043;
+    --bm-pill-bg: #2d2e30;
+    --bm-pill-hover: #38393c;
+    --bm-pill-border: #4a4d51;
+    --bm-pill-text: #e8eaed;
+    --bm-header-bg: rgba(30, 30, 30, 0.85);
+  }
+
+  .messagelist tr.selected td,
+  .messagelist tr:hover td,
+  .records-table tr.selected td,
+  .records-table tr:hover td {
+    background-color: #283548 !important;
+  }
+
+  .bm-trimmed-toggle {
+    background: #3c4043;
+    color: #9aa0a6;
+  }
+
+  .bm-trimmed-toggle:hover {
+    background: #4a4d51;
+    color: #e8eaed;
+  }
+
+  .tokenfield,
+  .rcm-recipient,
+  .recipient-input,
+  .compose-headers input[type="text"] {
+    background-color: #282828 !important;
+    border-color: #3c4043 !important;
+    color: #e8eaed !important;
+  }
+}
+
+.dark-mode {
+  --bm-bg-card: #1e1e1e;
+  --bm-border-color: #3c4043;
+  --bm-pill-bg: #2d2e30;
+  --bm-pill-hover: #38393c;
+  --bm-pill-border: #4a4d51;
+  --bm-pill-text: #e8eaed;
+  --bm-header-bg: rgba(30, 30, 30, 0.85);
+}

@@ -132,14 +132,23 @@ const columns = ref<DataTableColumns<MailBox>>([
 		minWidth: 140,
 		render: row => {
 			return (
-				<div class="flex justify-center w-160px">
+				<div class="flex justify-center items-center gap-2 w-160px">
+					<NButton
+						text
+						type="primary"
+						onClick={() => {
+							window.open(window.location.origin + '/roundcube/', '_blank')
+						}}>
+						Webmail
+					</NButton>
+					<span class="text-gray-300">|</span>
 					<NButton
 						text
 						type="primary"
 						onClick={() => {
 							copyText(
 								t('mailbox.loginInfo.template', {
-									webmail: window.location.origin + '/roundcube',
+									webmail: window.location.origin + '/roundcube/',
 									username: row.username,
 									password: row.password,
 									mx: row.mx,

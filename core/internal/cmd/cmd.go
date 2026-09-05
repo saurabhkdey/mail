@@ -243,8 +243,8 @@ var (
 							return
 						}
 
-						// check if the request is in the excluded URIs
-						if _, ok := excludesURIs[r.URL.Path]; ok {
+						// check if the request is in the excluded URIs or roundcube webmail
+						if _, ok := excludesURIs[r.URL.Path]; ok || strings.HasPrefix(r.URL.Path, "/roundcube") {
 							return
 						}
 
@@ -341,13 +341,15 @@ var (
 
 			// SPA fallback
 
-			// Add PHP-FPM middleware
+			// Add PHP-FPM middleware and trailing slash redirect
+			s.BindHandler("/roundcube", func(r *ghttp.Request) {
+				r.Response.RedirectTo("/roundcube/")
+			})
+
 			s.BindMiddleware("/roundcube/*any", func(r *ghttp.Request) {
-				if r.Method == "POST" && strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
-					// Get and store the request body
+				if r.Method == "POST" {
+					// Get and buffer request body safely
 					r.GetBody()
-					r.Middleware.Next()
-					return
 				}
 				r.Middleware.Next()
 			})
