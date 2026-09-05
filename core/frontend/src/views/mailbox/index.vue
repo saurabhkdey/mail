@@ -203,9 +203,17 @@ const columns = ref<DataTableColumns<MailBox>>([
 		title: t('common.columns.actions'),
 		key: 'actions',
 		align: 'right',
-		width: 120,
+		width: 180,
 		render: row => (
 			<NFlex inline={true}>
+				<NButton
+					text
+					type="primary"
+					onClick={() => {
+						window.open(window.location.origin + '/roundcube/', '_blank')
+					}}>
+					Webmail
+				</NButton>
 				<NButton
 					type="primary"
 					text={true}
