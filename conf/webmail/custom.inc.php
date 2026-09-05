@@ -35,6 +35,7 @@
     $config['autoexpand_threads'] = 2;
 
     # Composer & Reply Flow (Top-posting, Signature above quotes)
+    $config['reply_mode'] = 1;
     $config['top_posting'] = true;
     $config['sig_above'] = true;
     $config['strip_existing_sig'] = true;

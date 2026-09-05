@@ -2,6 +2,8 @@
  * BillionMail Modern Gmail-Style Experience for Roundcube
  * - Gmail Thread Conversation View (Stacked collapsible cards)
  * - Colored Circle Avatars with author initials
+ * - Automatic Quote Extraction & Separation
+ * - Cross-Folder Thread Sync (Links INBOX message and Sent replies)
  * - Inline Quick-Reply Composer (Reply right in the thread without page reload)
  * - Gmail Action Pills: [ ↩ Reply ] [ ↪ Forward ]
  * - ••• Trimmed Quote Toggle
@@ -81,11 +83,8 @@
       '<span class="gm-inbox-badge">Inbox</span>';
     threadContainer.appendChild(subjectContainer);
 
-    // Parse Body for Thread Messages
-    var rawHtml = msgBody.innerHTML;
-    var rawText = msgBody.innerText || '';
-
-    var threadMessages = parseEmailThread(rawText, rawHtml, senderText, dateText);
+    // Extract conversation messages from DOM & quotes
+    var threadMessages = extractThreadMessages(msgBody, senderText, dateText);
 
     // Render Cards in Stack
     threadMessages.forEach(function (msg, idx) {
@@ -115,7 +114,14 @@
               '<svg title="Reply" class="gm-btn-quick-reply-icon" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>' +
             '</div>' +
           '</div>' +
-          '<div class="gm-message-body">' + msg.bodyHtml + '</div>';
+          '<div class="gm-message-body">' +
+            '<div class="gm-main-text">' + escapeHtml(msg.bodyText) + '</div>' +
+            (msg.quotedHtml ? 
+              '<div class="gm-trimmed-wrapper">' +
+                '<div class="bm-trimmed-toggle" title="Show trimmed content">•••</div>' +
+                '<div class="bm-trimmed-content is-collapsed">' + msg.quotedHtml + '</div>' +
+              '</div>' : '') +
+          '</div>';
 
         // Bind quick reply icon in header
         var qIcon = card.querySelector('.gm-btn-quick-reply-icon');
@@ -123,6 +129,20 @@
           qIcon.onclick = function (e) {
             e.stopPropagation();
             openInlineReply(threadContainer, authorName, subjectText);
+          };
+        }
+
+        // Bind trimmed content toggle button
+        var toggleBtn = card.querySelector('.bm-trimmed-toggle');
+        if (toggleBtn) {
+          toggleBtn.onclick = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var content = card.querySelector('.bm-trimmed-content');
+            if (content) {
+              content.classList.toggle('is-collapsed');
+              toggleBtn.style.display = content.classList.contains('is-collapsed') ? 'inline-flex' : 'none';
+            }
           };
         }
       } else {
@@ -150,6 +170,9 @@
 
     // Bottom Action Pills (Reply, Forward)
     renderBottomPills(threadContainer, senderText, subjectText);
+
+    // Cross-folder thread lookup (fetch related messages if viewing single thread)
+    checkCrossFolderThread(subjectText, threadContainer, senderText);
   }
 
   // Toggle card between collapsed and expanded
@@ -175,7 +198,7 @@
             '<span>' + escapeHtml(msg.date || '') + '</span>' +
           '</div>' +
         '</div>' +
-        '<div class="gm-message-body">' + msg.bodyHtml + '</div>';
+        '<div class="gm-message-body">' + escapeHtml(msg.bodyText || msg.snippet) + '</div>';
     } else {
       card.classList.remove('gm-expanded');
       card.classList.add('gm-collapsed');
@@ -187,67 +210,183 @@
     }
   }
 
-  // Parse email body into conversation thread items cleanly
-  function parseEmailThread(text, html, currentSender, currentDate) {
+  // Extract thread messages from DOM quotes or text patterns
+  function extractThreadMessages(msgBody, currentSender, currentDate) {
     var messages = [];
 
-    // Line by line classification
-    var lines = text.split('\n');
-    var prevLines = [];
-    var newLines = [];
-    var quoteAuthor = '';
-    var quoteDate = '';
+    // Check for DOM blockquotes or quote classes created by Roundcube
+    var quoteEl = msgBody.querySelector('blockquote, .quote_level_1, .quoted-text, .gmail_quote, [class*="quote"]');
 
-    var onWroteRegex = /On\s+([0-9]{4}-[0-9]{2}-[0-9]{2}[^,\n]*|[^,\n]+,\s+[^\n]+)\s*,\s*([^<>\n]+(?:<[^>]+>)?)\s+wrote:/i;
+    if (quoteEl) {
+      var prevText = quoteEl.innerText.trim();
+      var fullText = msgBody.innerText || '';
 
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-      var match = line.match(onWroteRegex);
-      if (match) {
-        quoteDate = match[1].trim();
-        quoteAuthor = match[2].trim();
-        continue;
-      }
+      // Extract author & date from "On <date>, <author> wrote:"
+      var onWroteRegex = /On\s+([0-9]{4}-[0-9]{2}-[0-9]{2}[^,\n]*|[^,\n]+,\s+[^\n]+)\s*,\s*([^<>\n]+(?:<[^>]+>)?)\s+wrote:/i;
+      var match = fullText.match(onWroteRegex);
+      var quoteAuthor = match ? match[2].trim() : 'Previous Sender';
+      var quoteDate = match ? match[1].trim() : '';
 
-      // If line is quoted (starts with | or >)
-      if (/^[\s|>]+/.test(line)) {
-        var cleanQuoteLine = line.replace(/^[\s|>]+/, '').trimEnd();
-        if (cleanQuoteLine) prevLines.push(cleanQuoteLine);
-      } else if (line.trim().length > 0) {
-        newLines.push(line.trim());
+      // Get reply text by removing quote text and "On ... wrote:" header
+      var replyText = fullText;
+      if (match) replyText = replyText.replace(match[0], '');
+      replyText = replyText.replace(prevText, '').trim();
+
+      // Clean lines with | or > if still present
+      replyText = replyText.replace(/^[|>]\s*/gm, '').trim();
+
+      if (prevText) {
+        // 1. Card 1 (Previous email in thread)
+        messages.push({
+          author: quoteAuthor,
+          date: quoteDate,
+          snippet: prevText.substring(0, 100).replace(/\n/g, ' '),
+          bodyText: prevText
+        });
+
+        // 2. Card 2 (Latest reply)
+        messages.push({
+          author: currentSender,
+          date: currentDate,
+          snippet: replyText.substring(0, 100).replace(/\n/g, ' '),
+          bodyText: replyText || ' ',
+          quotedHtml: quoteEl.outerHTML
+        });
+
+        return messages;
       }
     }
 
-    var prevBody = prevLines.join('\n').trim();
-    var newBody = newLines.join('\n').trim();
+    // Check plain text regex if no blockquote element found
+    var fullRawText = msgBody.innerText || '';
+    var textMatch = fullRawText.match(/On\s+([0-9]{4}-[0-9]{2}-[0-9]{2}[^,\n]*|[^,\n]+,\s+[^\n]+)\s*,\s*([^<>\n]+(?:<[^>]+>)?)\s+wrote:/i);
 
-    if (prevBody && quoteAuthor) {
-      // 1. Previous Message in Thread (Saurabh Kumar Dey)
-      messages.push({
-        author: quoteAuthor,
-        date: quoteDate || 'Previous',
-        snippet: prevBody.substring(0, 80) || 'Previous message',
-        bodyHtml: escapeHtml(prevBody)
-      });
+    if (textMatch) {
+      var headerPos = textMatch.index;
+      var headerStr = textMatch[0];
+      var textBefore = fullRawText.substring(0, headerPos).trim();
+      var textAfter = fullRawText.substring(headerPos + headerStr.length).trim();
 
-      // 2. Latest Reply Message
-      messages.push({
-        author: currentSender,
-        date: currentDate,
-        snippet: newBody.substring(0, 80) || newBody,
-        bodyHtml: escapeHtml(newBody)
-      });
-    } else {
-      // Single email without quoted thread
-      messages.push({
-        author: currentSender,
-        date: currentDate,
-        snippet: text.substring(0, 80),
-        bodyHtml: html || escapeHtml(text)
-      });
+      // Separate quoted lines from reply lines
+      var rawLines = textAfter.split('\n');
+      var quotedLines = [];
+      var unquotedLines = [];
+
+      for (var i = 0; i < rawLines.length; i++) {
+        var l = rawLines[i];
+        if (/^[|>\s]+/.test(l)) {
+          quotedLines.push(l.replace(/^[|>\s]+/, '').trimEnd());
+        } else if (l.trim().length > 0) {
+          unquotedLines.push(l.trim());
+        }
+      }
+
+      var qBody = quotedLines.join('\n').trim();
+      var rBody = (textBefore + '\n' + unquotedLines.join('\n')).trim();
+
+      if (qBody) {
+        messages.push({
+          author: textMatch[2].trim(),
+          date: textMatch[1].trim(),
+          snippet: qBody.substring(0, 100).replace(/\n/g, ' '),
+          bodyText: qBody
+        });
+
+        messages.push({
+          author: currentSender,
+          date: currentDate,
+          snippet: rBody.substring(0, 100).replace(/\n/g, ' '),
+          bodyText: rBody || ' '
+        });
+
+        return messages;
+      }
     }
+
+    // Default: Single email without quotes
+    messages.push({
+      author: currentSender,
+      date: currentDate,
+      snippet: fullRawText.substring(0, 100).replace(/\n/g, ' '),
+      bodyText: fullRawText
+    });
 
     return messages;
+  }
+
+  // Cross-folder thread sync (fetches sent reply if viewing in INBOX)
+  function checkCrossFolderThread(subjectText, threadContainer, currentSender) {
+    var rc = getRcmail();
+    if (!rc || !rc.env) return;
+
+    var currentMbox = rc.env.mailbox || 'INBOX';
+    var cleanSubj = subjectText.replace(/^Re:\s*/i, '').trim();
+
+    // If in INBOX and single message, check if there's a reply in Sent
+    if (currentMbox.toUpperCase() === 'INBOX' && threadContainer.querySelectorAll('.gm-thread-card').length === 1) {
+      fetch('/roundcube/?_task=mail&_action=list&_mbox=Sent&_q=' + encodeURIComponent(cleanSubj), {
+        credentials: 'same-origin'
+      })
+      .then(function (res) { return res.text(); })
+      .then(function (html) {
+        var match = html.match(/data-uid="(\d+)"/i) || html.match(/'uid':\s*['"]?(\d+)['"]?/i);
+        if (match && match[1]) {
+          var sentUid = match[1];
+          // Fetch preview of the sent reply
+          return fetch('/roundcube/?_task=mail&_action=preview&_mbox=Sent&_uid=' + sentUid, {
+            credentials: 'same-origin'
+          });
+        }
+      })
+      .then(function (res) {
+        if (res && res.text) return res.text();
+      })
+      .then(function (replyHtml) {
+        if (!replyHtml) return;
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(replyHtml, 'text/html');
+        var sentBody = doc.querySelector('#messagebody');
+        if (sentBody) {
+          var sentText = sentBody.innerText || '';
+          // Clean out quote from reply
+          var cleanSentText = sentText.replace(/On\s+[\s\S]*?wrote:[\s\S]*/i, '').trim();
+          if (!cleanSentText) {
+            cleanSentText = sentText.replace(/^[|>].*/gm, '').trim();
+          }
+
+          if (cleanSentText) {
+            // Append as Card 2 in thread!
+            var card2 = document.createElement('div');
+            card2.className = 'gm-thread-card gm-expanded';
+            card2.innerHTML = 
+              '<div class="gm-thread-header">' +
+                '<div class="gm-author-meta">' +
+                  '<div class="gm-avatar" style="background:#1a73e8">S</div>' +
+                  '<div class="gm-author-names">' +
+                    '<span class="gm-author-name">saurabh.dey@identiq.in</span>' +
+                    '<span class="gm-recipient-chip">to ' + escapeHtml(currentSender) + ' ▾</span>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="gm-header-right">' +
+                  '<span>Sent Reply</span>' +
+                  '<svg title="Star" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' +
+                '</div>' +
+              '</div>' +
+              '<div class="gm-message-body">' +
+                '<div class="gm-main-text">' + escapeHtml(cleanSentText) + '</div>' +
+              '</div>';
+
+            var pills = threadContainer.querySelector('.bm-action-pills-container');
+            if (pills) {
+              threadContainer.insertBefore(card2, pills);
+            } else {
+              threadContainer.appendChild(card2);
+            }
+          }
+        }
+      })
+      .catch(function () {});
+    }
   }
 
   // =========================================================================
