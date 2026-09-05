@@ -20,6 +20,77 @@ html, body, button, input, textarea, select, .rcm-theme, #layout {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Modern Sleek Login Box */
+.formcontent,
+#login-form,
+.login-form {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+  padding: 24px 28px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  max-width: 420px !important;
+  margin: 0 auto !important;
+}
+
+#login-form .input-group,
+.login-form .input-group {
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  margin-bottom: 14px !important;
+  border: 1px solid #dadce0 !important;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#login-form .input-group:focus-within,
+.login-form .input-group:focus-within {
+  border-color: var(--bm-primary-color) !important;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15) !important;
+}
+
+#login-form input[type="text"],
+#login-form input[type="password"],
+.login-form input[type="text"],
+.login-form input[type="password"] {
+  border: none !important;
+  padding: 10px 14px !important;
+  font-size: 14px !important;
+}
+
+#login-form .input-group-prepend .input-group-text,
+.login-form .input-group-prepend .input-group-text {
+  border: none !important;
+  background-color: #f8f9fa !important;
+  color: #5f6368 !important;
+}
+
+#login-form button[type="submit"],
+#rcmloginbtn,
+.login-form button[type="submit"],
+.btn.btn-primary.btn-login {
+  background: linear-gradient(135deg, #1a73e8, #1557b0) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  letter-spacing: 0.5px !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  width: 100% !important;
+  cursor: pointer !important;
+}
+
+#login-form button[type="submit"]:hover,
+#rcmloginbtn:hover,
+.login-form button[type="submit"]:hover {
+  background: linear-gradient(135deg, #1557b0, #0d47a1) !important;
+  box-shadow: 0 6px 18px rgba(26, 115, 232, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
 /* Glassmorphic Header & Toolbar */
 #layout-menu,
 .header,
