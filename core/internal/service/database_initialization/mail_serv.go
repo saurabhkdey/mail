@@ -129,5 +129,47 @@ func init() {
 		_ = AddColumnIfNotExists("mailbox", "used_quota", "BIGINT", "0", true)
 		_ = AddColumnIfNotExists("mailbox", "quota_active", "SMALLINT", "1", true)
 
+		// Setup automatic full_name synchronization between mailbox and Roundcube identities
+		triggerSQL := []string{
+			`CREATE OR REPLACE FUNCTION sync_identity_name()
+			RETURNS TRIGGER AS $$
+			BEGIN
+				IF NEW.name IS NULL OR TRIM(NEW.name) = '' THEN
+					SELECT full_name INTO NEW.name 
+					FROM mailbox 
+					WHERE username = NEW.email;
+					
+					IF NEW.name IS NULL OR TRIM(NEW.name) = '' THEN
+						NEW.name := INITCAP(REPLACE(SPLIT_PART(NEW.email, '@', 1), '.', ' '));
+					END IF;
+				END IF;
+				RETURN NEW;
+			END;
+			$$ LANGUAGE plpgsql;`,
+			`DROP TRIGGER IF EXISTS trg_sync_identity_name ON identities;`,
+			`CREATE TRIGGER trg_sync_identity_name
+			BEFORE INSERT OR UPDATE ON identities
+			FOR EACH ROW
+			EXECUTE FUNCTION sync_identity_name();`,
+			`CREATE OR REPLACE FUNCTION sync_mailbox_to_identity()
+			RETURNS TRIGGER AS $$
+			BEGIN
+				IF NEW.full_name IS NOT NULL AND TRIM(NEW.full_name) != '' THEN
+					UPDATE identities 
+					SET name = NEW.full_name 
+					WHERE email = NEW.username;
+				END IF;
+				RETURN NEW;
+			END;
+			$$ LANGUAGE plpgsql;`,
+			`DROP TRIGGER IF EXISTS trg_sync_mailbox_to_identity ON mailbox;`,
+			`CREATE TRIGGER trg_sync_mailbox_to_identity
+			AFTER INSERT OR UPDATE ON mailbox
+			FOR EACH ROW
+			EXECUTE FUNCTION sync_mailbox_to_identity();`,
+		}
+		for _, q := range triggerSQL {
+			_, _ = g.DB().Exec(context.Background(), q)
+		}
 	})
 }

@@ -54,6 +54,9 @@ func Add(ctx context.Context, mailbox *v1.Mailbox) (err error) {
 	if e2 := ensureMaildirAndQuotaFile(ctx, mailbox); e2 != nil {
 		g.Log().Warning(ctx, "ensureMaildirAndQuotaFile failed", e2)
 	}
+	if mailbox.FullName != "" {
+		_, _ = g.DB().Exec(ctx, "UPDATE identities SET name = ? WHERE email = ?", mailbox.FullName, mailbox.Username)
+	}
 	return nil
 }
 
@@ -96,6 +99,9 @@ func Update(ctx context.Context, mailbox *v1.Mailbox) (err error) {
 				g.Log().Warning(ctx, "updateMaildirQuotaHeader failed", e2)
 			}
 		}
+	}
+	if mailbox.FullName != "" {
+		_, _ = g.DB().Exec(ctx, "UPDATE identities SET name = ? WHERE email = ?", mailbox.FullName, mailbox.Username)
 	}
 	return nil
 }
