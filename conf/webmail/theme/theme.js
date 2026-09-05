@@ -180,19 +180,35 @@
     }
 
     if (el) {
-      var adrs = el.querySelectorAll('.adr, .rcmContactAddress, a[title]');
-      if (adrs.length > 0) {
+      // Strictly target actual contact link elements and ignore "Add to address book" buttons
+      var contactLinks = Array.from(el.querySelectorAll('a.rcmContactAddress, .adr a:not(.rcmAddContact):not([href^="#"])'));
+      if (contactLinks.length === 0) {
+        contactLinks = Array.from(el.querySelectorAll('.adr, a[title]')).filter(function (node) {
+          var t = ((node.getAttribute('title') || '') + ' ' + (node.className || '') + ' ' + (node.innerText || '')).toLowerCase();
+          return t.indexOf('add to address') === -1 && t.indexOf('rcmaddcontact') === -1;
+        });
+      }
+
+      if (contactLinks.length > 0) {
         var names = [];
         var emails = [];
         var fullList = [];
-        adrs.forEach(function (a) {
+        var seenKeys = {};
+
+        contactLinks.forEach(function (a) {
           var em = a.getAttribute('title') || '';
           var nm = (a.innerText || a.textContent || '').trim();
+
+          // Clean out any "Add to address book" text
+          nm = nm.replace(/add\s+to\s+address\s+book/gi, '').trim();
+          if (em.toLowerCase().indexOf('add to address') > -1) em = '';
+
           if (!em || em.indexOf('@') === -1) {
             var href = a.getAttribute('href') || '';
             var m = href.match(/mailto:([^?&]+)/i) || href.match(/_to=([^&]+)/i);
             if (m) em = decodeURIComponent(m[1]);
           }
+
           var emMatch = nm.match(/<([^>]+@[^>]+)>/);
           if (emMatch) {
             em = emMatch[1].trim();
@@ -200,7 +216,14 @@
           } else if (!em && nm.indexOf('@') > -1) {
             em = nm;
           }
+
           if (!nm && em) nm = em;
+          if (!em && nm && nm.indexOf('@') > -1) em = nm;
+
+          var dedupeKey = (em || nm).toLowerCase().trim();
+          if (!dedupeKey || seenKeys[dedupeKey]) return;
+          seenKeys[dedupeKey] = true;
+
           if (nm && em && nm !== em) {
             fullList.push(nm + ' <' + em + '>');
           } else {
@@ -209,15 +232,19 @@
           if (nm) names.push(nm);
           if (em) emails.push(em);
         });
-        return {
-          name: names.join(', ') || fallbackText || '',
-          email: emails.join(', ') || '',
-          full: fullList.join(', ') || fallbackText || ''
-        };
+
+        if (names.length > 0 || emails.length > 0) {
+          return {
+            name: names.join(', ') || fallbackText || '',
+            email: emails.join(', ') || '',
+            full: fullList.join(', ') || fallbackText || ''
+          };
+        }
       }
     }
 
     var text = (el ? (el.innerText || el.textContent || '') : (fallbackText || '')).trim();
+    text = text.replace(/add\s+to\s+address\s+book/gi, '').trim();
     var emSingle = '';
     var nmSingle = text;
     var emMatchSingle = text.match(/<([^>]+@[^>]+)>/);
@@ -1178,13 +1205,13 @@
     }, 150);
   }
 
-  function enforceFlatListMode() {
-    if (window.__bm_flat_enforced) return;
+  function ensureThreadedListMode() {
+    if (window.__bm_threads_enforced) return;
     var rc = getRcmail();
-    if (rc && rc.env && rc.env.threading && typeof rc.set_list_options === 'function') {
-      window.__bm_flat_enforced = true;
+    if (rc && rc.env && !rc.env.threading && typeof rc.set_list_options === 'function') {
+      window.__bm_threads_enforced = true;
       try {
-        rc.set_list_options([], rc.env.sort_col || '', rc.env.sort_order || 'DESC', 0);
+        rc.set_list_options([], rc.env.sort_col || 'date', rc.env.sort_order || 'DESC', 1);
       } catch (e) {}
     }
   }
@@ -1203,7 +1230,7 @@
       keysToRemove.forEach(function (k) { localStorage.removeItem(k); });
     } catch (e) {}
 
-    enforceFlatListMode();
+    ensureThreadedListMode();
     transformThreadView();
     hookComposeForm();
     initKeyboardShortcuts();
