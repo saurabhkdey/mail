@@ -40,6 +40,14 @@
     return null;
   }
 
+  function getMyName() {
+    var rc = getRcmail();
+    if (rc && rc.env && rc.env.identities && rc.env.identities[0]) {
+      if (rc.env.identities[0].name) return rc.env.identities[0].name;
+    }
+    return 'Saurabh Kumar Dey';
+  }
+
   function getMyEmail() {
     var rc = getRcmail();
     if (rc && rc.env && rc.env.identities && rc.env.identities[0]) {
@@ -571,8 +579,9 @@
           var now = new Date();
           var timeStr = 'Today ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
 
+          var myName = getMyName();
           var newMsg = {
-            author: myEmail + ' (me)',
+            author: myName,
             date: timeStr,
             bodyText: replyText
           };
@@ -586,7 +595,7 @@
           } catch (e) {}
 
           replyBox.remove();
-          renderCards(container, threadMessages, recipient, myEmail, subject);
+          renderCards(container, threadMessages, recipient, myName, subject);
 
           showToast('Message sent.');
 
@@ -642,8 +651,13 @@
       }
 
       var existingMsg = fd.get('_message') || '';
-      fd.set('_message', text + '\n\n' + existingMsg);
-      fd.set('_is_html', '0');
+      var cleanText = escapeHtml(text).replace(/\n/g, '<br>');
+      var htmlBody = '<div dir="ltr">' + cleanText + '</div>';
+      if (existingMsg) {
+        htmlBody += '<br><div class="gmail_quote">' + existingMsg + '</div>';
+      }
+      fd.set('_message', htmlBody);
+      fd.set('_is_html', '1');
       fd.set('_action', 'send');
 
       return fetch('/roundcube/?_task=mail&_action=send', {
@@ -692,7 +706,7 @@
                 if (raw) cached = JSON.parse(raw);
               } catch (e) {}
               cached.push({
-                author: getMyEmail() + ' (me)',
+                author: getMyName(),
                 date: timeStr,
                 bodyText: pureReply
               });
