@@ -978,6 +978,17 @@
     }, 150);
   }
 
+  function enforceFlatListMode() {
+    if (window.__bm_flat_enforced) return;
+    var rc = getRcmail();
+    if (rc && rc.env && rc.env.threading && typeof rc.set_list_options === 'function') {
+      window.__bm_flat_enforced = true;
+      try {
+        rc.set_list_options([], rc.env.sort_col || '', rc.env.sort_order || 'DESC', 0);
+      } catch (e) {}
+    }
+  }
+
   // Observer to run safely when an email is loaded
   function init() {
     // Purge any legacy artificial thread caches from localStorage
@@ -992,6 +1003,7 @@
       keysToRemove.forEach(function (k) { localStorage.removeItem(k); });
     } catch (e) {}
 
+    enforceFlatListMode();
     transformThreadView();
     hookComposeForm();
     initKeyboardShortcuts();

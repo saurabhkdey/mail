@@ -163,8 +163,8 @@ func PHPFpmHandlerFactory(config PHPFpmHandlerConfig) ghttp.HandlerFunc {
 		if isHTML {
 			respBody, _ = io.ReadAll(resp.Body)
 
-			themeCSS := `<link rel="stylesheet" href="/roundcube/theme/theme.css?v=3.5">`
-			themeJS := `<script src="/roundcube/theme/theme.js?v=3.5" defer></script>`
+			themeCSS := `<link rel="stylesheet" href="/roundcube/theme/theme.css?v=3.6">`
+			themeJS := `<script src="/roundcube/theme/theme.js?v=3.6" defer></script>`
 
 			if bytes.Contains(respBody, []byte("</head>")) {
 				respBody = bytes.Replace(respBody, []byte("</head>"), []byte(themeCSS+"\n</head>"), 1)
