@@ -40,7 +40,6 @@ body {
 }
 
 /* 2. Top Header & App Bar - Minimal Clean Icons */
-#layout-menu,
 .header,
 header.header,
 .toolbar {
@@ -67,6 +66,81 @@ header.header,
 }
 
 /* 3. Left Navigation Rail & Compose Button */
+#layout-menu {
+  background: var(--gm-bg-app) !important;
+  border-right: 1px solid var(--gm-border-light) !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+#layout-menu .popover-header {
+  background: var(--gm-bg-app) !important;
+  border-bottom: 1px solid var(--gm-border-light) !important;
+}
+
+#taskmenu {
+  background: transparent !important;
+}
+
+#taskmenu .special-buttons {
+  background: var(--gm-bg-app) !important;
+  border-top: 1px solid var(--gm-border-light) !important;
+}
+
+#taskmenu .special-buttons a:not(:focus),
+#layout-menu .special-buttons a:not(:focus) {
+  background: transparent !important;
+}
+
+#taskmenu a,
+#layout-menu a:not(.compose) {
+  color: #444746 !important;
+  border-bottom: none !important;
+  transition: all 0.15s ease !important;
+}
+
+#taskmenu a:before,
+#layout-menu a:not(.compose):before {
+  color: #444746 !important;
+}
+
+#taskmenu a span.inner,
+#layout-menu a:not(.compose) span.inner {
+  color: #444746 !important;
+}
+
+#taskmenu a:hover,
+#layout-menu a:not(.compose):hover {
+  background-color: #eaebef !important;
+  color: #1f1f1f !important;
+}
+
+#taskmenu a:hover:before,
+#taskmenu a:hover span.inner {
+  color: #1f1f1f !important;
+}
+
+#taskmenu a.selected,
+#layout-menu a.selected:not(.compose) {
+  background-color: var(--gm-blue-light) !important;
+  color: #041e49 !important;
+}
+
+#taskmenu a.selected:before,
+#taskmenu a.selected span.inner {
+  color: #041e49 !important;
+  font-weight: 700 !important;
+}
+
+#taskmenu a.logout {
+  color: #d93025 !important;
+}
+
+#taskmenu a.logout:before,
+#taskmenu a.logout span.inner {
+  color: #d93025 !important;
+}
+
 #layout-sidebar {
   background: var(--gm-bg-app) !important;
   border-right: 1px solid var(--gm-border-light) !important;
@@ -587,7 +661,61 @@ html.dark-mode #layout-sidebar {
   color: #e8eaed !important;
 }
 
-html.dark-mode #layout-menu,
+html.dark-mode #layout-menu {
+  background: #1e1e1e !important;
+  border-right: 1px solid #333333 !important;
+  border-bottom: none !important;
+}
+
+html.dark-mode #layout-menu .popover-header {
+  background: #1e1e1e !important;
+  border-bottom: 1px solid #333333 !important;
+}
+
+html.dark-mode #taskmenu .special-buttons {
+  background: #1e1e1e !important;
+  border-top: 1px solid #333333 !important;
+}
+
+html.dark-mode #taskmenu .special-buttons a:not(:focus),
+html.dark-mode #layout-menu .special-buttons a:not(:focus) {
+  background: transparent !important;
+}
+
+html.dark-mode #taskmenu a,
+html.dark-mode #layout-menu a:not(.compose) {
+  color: #c4c7c5 !important;
+}
+
+html.dark-mode #taskmenu a:before,
+html.dark-mode #layout-menu a:not(.compose):before,
+html.dark-mode #taskmenu a span.inner,
+html.dark-mode #layout-menu a:not(.compose) span.inner {
+  color: #c4c7c5 !important;
+}
+
+html.dark-mode #taskmenu a:hover,
+html.dark-mode #layout-menu a:not(.compose):hover {
+  background-color: #2b3036 !important;
+  color: #e3e3e3 !important;
+}
+
+html.dark-mode #taskmenu a:hover:before,
+html.dark-mode #taskmenu a:hover span.inner {
+  color: #e3e3e3 !important;
+}
+
+html.dark-mode #taskmenu a.selected,
+html.dark-mode #layout-menu a.selected:not(.compose) {
+  background-color: #004a77 !important;
+  color: #c2e7ff !important;
+}
+
+html.dark-mode #taskmenu a.selected:before,
+html.dark-mode #taskmenu a.selected span.inner {
+  color: #c2e7ff !important;
+}
+
 html.dark-mode .header,
 html.dark-mode header.header,
 html.dark-mode .toolbar {

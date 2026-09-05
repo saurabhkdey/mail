@@ -149,27 +149,46 @@
     return result.sort(sortChronological);
   }
 
-  // Extract attachments from original message DOM
+  // Extract real attachments from original message DOM
   function extractOriginalAttachments(doc) {
     var list = [];
     if (!doc) return list;
-    var items = doc.querySelectorAll('#attachment-list li, .attachmentslist li, [id*="attachment"] a, a[href*="_action=get"]');
-    items.forEach(function (el) {
-      var a = el.tagName === 'A' ? el : el.querySelector('a');
-      if (!a) return;
-      var name = a.innerText.trim() || a.getAttribute('title') || 'attachment';
-      var href = a.getAttribute('href') || '';
-      if (!href) return;
+
+    // Only target actual message attachments, ignoring action menus or popup buttons
+    var container = doc.querySelector('#message-header #attachment-list, #attachment-list.attachmentslist, .message-attachments #attachment-list, #messageattachments #attachment-list');
+    if (!container) return list;
+
+    var items = container.querySelectorAll('li');
+    items.forEach(function (li) {
+      if (li.closest('.popupmenu') || li.closest('#attachmentmenu') || li.classList.contains('menu')) return;
+
+      var nameEl = li.querySelector('.attachment-name, .filename, a');
+      if (!nameEl) return;
+
+      var a = li.querySelector('a');
+      var href = a ? (a.getAttribute('href') || '') : '';
+      var name = nameEl.innerText.trim();
+
+      // Clean out size text from name if it was grouped
       var sizeText = '';
-      var sizeEl = el.querySelector('.attachment-size, .size');
-      if (sizeEl) sizeText = sizeEl.innerText.trim();
+      var sizeEl = li.querySelector('.attachment-size, .size');
+      if (sizeEl) {
+        sizeText = sizeEl.innerText.replace(/[()]/g, '').trim();
+        name = name.replace(sizeEl.innerText, '').trim();
+      }
+
+      // Ignore false positives from action buttons (like "Open", "Download", "Save")
+      var lower = name.toLowerCase();
+      if (!name || lower === 'open' || lower === 'download' || lower === 'save' || lower === 'close') {
+        return;
+      }
 
       var ext = name.split('.').pop().toLowerCase();
       var type = 'file';
       if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].indexOf(ext) > -1) type = 'img';
       else if (ext === 'pdf') type = 'pdf';
       else if (['zip', 'tar', 'gz', 'rar', '7z'].indexOf(ext) > -1) type = 'zip';
-      else if (['doc', 'docx', 'txt', 'rtf', 'odt', 'csv', 'xlsx'].indexOf(ext) > -1) type = 'doc';
+      else if (['doc', 'docx', 'txt', 'rtf', 'odt', 'csv', 'xlsx', 'xls'].indexOf(ext) > -1) type = 'doc';
 
       list.push({ name: name, href: href, size: sizeText, type: type });
     });
