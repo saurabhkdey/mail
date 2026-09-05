@@ -30,8 +30,8 @@
     $config['layout'] = 'widescreen';
     $config['preview_pane'] = true;
 
-    # Gmail-Style Conversation Threading
-    $config['default_list_mode'] = 'threads';
+    # Full Flat Message List (Displays all individual emails)
+    $config['default_list_mode'] = 'list';
     $config['autoexpand_threads'] = 0;
 
     # Composer & Reply Flow (Top-posting, Signature above quotes)
