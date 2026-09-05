@@ -1095,4 +1095,101 @@ html.dark-mode .gm-discard-btn:hover {
   color: #f87171 !important;
 }
 
+/* Gmail Details Dropdown Popover */
+.gm-author-email {
+  font-size: 12.5px !important;
+  color: var(--gm-text-muted) !important;
+  font-weight: 400 !important;
+  margin-left: 6px !important;
+}
+
+.gm-recipient-chip {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  font-family: inherit !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-size: 12.5px !important;
+  color: var(--gm-text-secondary) !important;
+  cursor: pointer !important;
+  padding: 2px 6px !important;
+  margin-top: 2px !important;
+  border-radius: 4px !important;
+  user-select: none !important;
+  width: fit-content !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+}
+
+.gm-recipient-chip:hover {
+  background: var(--gm-bg-card-hover) !important;
+  color: var(--gm-text-primary) !important;
+}
+
+.gm-details-arrow {
+  font-size: 10px !important;
+  margin-left: 2px !important;
+  transition: transform 0.2s ease !important;
+}
+
+.gm-details-popover {
+  background: var(--gm-bg-card) !important;
+  border: 1px solid var(--gm-border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+  padding: 14px 18px !important;
+  margin: 10px 0 14px 0 !important;
+  width: fit-content !important;
+  min-width: 380px !important;
+  max-width: 600px !important;
+  position: relative !important;
+  z-index: 100 !important;
+  animation: gmFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.gm-details-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 12.5px !important;
+  line-height: 1.6 !important;
+}
+
+.gm-details-table td {
+  padding: 3px 8px !important;
+  vertical-align: top !important;
+}
+
+.gm-details-label {
+  color: var(--gm-text-muted) !important;
+  text-align: right !important;
+  width: 80px !important;
+  white-space: nowrap !important;
+  font-weight: 500 !important;
+}
+
+.gm-details-val {
+  color: var(--gm-text-primary) !important;
+  word-break: break-all !important;
+}
+
+.gm-details-val strong {
+  font-weight: 600 !important;
+}
+
+html.dark-mode .gm-details-popover {
+  background: #2d2e30 !important;
+  border-color: #3c4043 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark-mode .gm-details-val {
+  color: #e8eaed !important;
+}
+
+html.dark-mode .gm-details-label {
+  color: #9aa0a6 !important;
+}
+
+
 

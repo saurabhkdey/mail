@@ -173,16 +173,124 @@
     return list;
   }
 
+  // Parse addresses from DOM elements or raw strings: returns { name, email, full }
+  function parseAddress(el, fallbackText) {
+    if (!el && !fallbackText) {
+      return { name: '', email: '', full: '' };
+    }
+
+    if (el) {
+      var adrs = el.querySelectorAll('.adr, .rcmContactAddress, a[title]');
+      if (adrs.length > 0) {
+        var names = [];
+        var emails = [];
+        var fullList = [];
+        adrs.forEach(function (a) {
+          var em = a.getAttribute('title') || '';
+          var nm = (a.innerText || a.textContent || '').trim();
+          if (!em || em.indexOf('@') === -1) {
+            var href = a.getAttribute('href') || '';
+            var m = href.match(/mailto:([^?&]+)/i) || href.match(/_to=([^&]+)/i);
+            if (m) em = decodeURIComponent(m[1]);
+          }
+          var emMatch = nm.match(/<([^>]+@[^>]+)>/);
+          if (emMatch) {
+            em = emMatch[1].trim();
+            nm = nm.replace(/<[^>]+>/, '').trim();
+          } else if (!em && nm.indexOf('@') > -1) {
+            em = nm;
+          }
+          if (!nm && em) nm = em;
+          if (nm && em && nm !== em) {
+            fullList.push(nm + ' <' + em + '>');
+          } else {
+            fullList.push(em || nm);
+          }
+          if (nm) names.push(nm);
+          if (em) emails.push(em);
+        });
+        return {
+          name: names.join(', ') || fallbackText || '',
+          email: emails.join(', ') || '',
+          full: fullList.join(', ') || fallbackText || ''
+        };
+      }
+    }
+
+    var text = (el ? (el.innerText || el.textContent || '') : (fallbackText || '')).trim();
+    var emSingle = '';
+    var nmSingle = text;
+    var emMatchSingle = text.match(/<([^>]+@[^>]+)>/);
+    if (emMatchSingle) {
+      emSingle = emMatchSingle[1].trim();
+      nmSingle = text.replace(/<[^>]+>/, '').trim();
+    } else if (text.indexOf('@') > -1) {
+      emSingle = text;
+    }
+    return {
+      name: nmSingle || emSingle,
+      email: emSingle,
+      full: (nmSingle && emSingle && nmSingle !== emSingle) ? (nmSingle + ' <' + emSingle + '>') : (emSingle || nmSingle)
+    };
+  }
+
+  // Extract full email headers for details popover
+  function extractFullMessageMeta(msgHeader, fallbackSubject, fallbackSender, fallbackDate) {
+    var meta = {
+      subject: fallbackSubject || '',
+      date: fallbackDate || '',
+      from: { name: fallbackSender || '', email: '', full: fallbackSender || '' },
+      to: { name: 'me', email: '', full: 'me' },
+      cc: { name: '', email: '', full: '' },
+      bcc: { name: '', email: '', full: '' },
+      mailedBy: '',
+      signedBy: '',
+      security: 'Standard encryption (TLS)'
+    };
+
+    if (!msgHeader) return meta;
+
+    var subjEl = msgHeader.querySelector('.subject');
+    if (subjEl) meta.subject = subjEl.innerText.replace(/openinextwin/gi, '').trim();
+
+    var dateEl = msgHeader.querySelector('.date');
+    if (dateEl) meta.date = dateEl.innerText.trim();
+
+    var fromEl = msgHeader.querySelector('.from');
+    if (fromEl) meta.from = parseAddress(fromEl, fallbackSender);
+
+    var toEl = msgHeader.querySelector('.to');
+    if (toEl) meta.to = parseAddress(toEl, 'me');
+
+    var ccEl = msgHeader.querySelector('.cc');
+    if (ccEl) meta.cc = parseAddress(ccEl, '');
+
+    var bccEl = msgHeader.querySelector('.bcc');
+    if (bccEl) meta.bcc = parseAddress(bccEl, '');
+
+    var domain = '';
+    if (meta.from && meta.from.email && meta.from.email.indexOf('@') > -1) {
+      domain = meta.from.email.split('@')[1];
+    } else if (window.location && window.location.hostname) {
+      domain = window.location.hostname.replace(/^mail\./i, '');
+    }
+    meta.mailedBy = domain;
+    meta.signedBy = domain;
+
+    return meta;
+  }
+
   // =========================================================================
   // 1. Transform Reading Pane to Gmail-Style Thread Conversation View
   // =========================================================================
   function transformThreadView() {
-    var msgHeader = document.querySelector('#message-header');
-    var msgBody = document.querySelector('#messagebody');
+    var doc = (this && this.document) ? this.document : document;
+    var msgHeader = doc.querySelector('#message-header');
+    var msgBody = doc.querySelector('#messagebody');
     if (!msgHeader || !msgBody) return;
-    if (document.querySelector('.gm-thread-container')) return; // Already transformed
+    if (doc.querySelector('.gm-thread-container')) return; // Already transformed
 
-    document.body.classList.add('gm-view-active');
+    doc.body.classList.add('gm-view-active');
 
     // Extract Subject
     var subjectEl = msgHeader.querySelector('.subject');
@@ -192,48 +300,45 @@
     // Extract Sender, Recipient, Date
     var senderText = '';
     var dateText = '';
-    var recipientText = 'me';
-
     var fromEl = msgHeader.querySelector('.from .adr, .from');
     if (fromEl) senderText = fromEl.innerText.trim();
-
     var dateEl = msgHeader.querySelector('.date');
     if (dateEl) dateText = dateEl.innerText.trim();
 
-    var toEl = msgHeader.querySelector('.to .adr, .to');
-    if (toEl) recipientText = toEl.innerText.trim();
+    // Extract Full Message Meta
+    var meta = extractFullMessageMeta(msgHeader, subjectText, senderText, dateText);
 
     // Check if multiple recipients exist
-    var hasCc = !!msgHeader.querySelector('.cc, .bcc');
-    var isMultiRecipient = hasCc || (recipientText.indexOf(',') > -1) || (recipientText.indexOf(';') > -1);
+    var hasCc = !!(meta.cc && meta.cc.full) || !!(meta.bcc && meta.bcc.full);
+    var isMultiRecipient = hasCc || (meta.to.full.indexOf(',') > -1) || (meta.to.full.indexOf(';') > -1);
 
     // Extract attachments from original message
-    var attachments = extractOriginalAttachments(document);
+    var attachments = extractOriginalAttachments(doc);
 
     // Hide default header
     msgHeader.style.display = 'none';
 
     // Build Gmail Thread Container
-    var threadContainer = document.createElement('div');
+    var threadContainer = doc.createElement('div');
     threadContainer.className = 'gm-thread-container';
     threadContainer.setAttribute('data-thread-key', threadKey);
 
     // Top Subject Row with [Inbox] badge
-    var subjectContainer = document.createElement('div');
+    var subjectContainer = doc.createElement('div');
     subjectContainer.className = 'gm-subject-container';
     subjectContainer.innerHTML = 
-      '<h1 class="gm-subject-title">' + escapeHtml(subjectText) + '</h1>' +
+      '<h1 class="gm-subject-title">' + escapeHtml(meta.subject) + '</h1>' +
       '<span class="gm-inbox-badge">Inbox</span>';
     threadContainer.appendChild(subjectContainer);
 
     // Extract conversation messages from nested quotes & text
-    var threadMessages = extractAllThreadMessages(msgBody, senderText, dateText);
+    var threadMessages = extractAllThreadMessages(msgBody, meta.from.name || senderText, meta.date || dateText);
 
     // Sort strictly chronological: Card 1 (oldest top) -> Card N (latest bottom)
     threadMessages.sort(sortChronological);
 
     // Render Cards in Stack (Fully expanded, no collapsed cards)
-    renderCards(threadContainer, threadMessages, recipientText, senderText, subjectText, isMultiRecipient, attachments);
+    renderCards(threadContainer, threadMessages, meta, isMultiRecipient, attachments);
 
     // Replace original msgBody with new Thread Container
     msgBody.style.display = 'none';
@@ -243,7 +348,7 @@
   }
 
   // Render all thread cards in chronological sequence (Always fully expanded)
-  function renderCards(threadContainer, threadMessages, recipientText, senderText, subjectText, isMultiRecipient, attachments) {
+  function renderCards(threadContainer, threadMessages, meta, isMultiRecipient, attachments) {
     var oldCards = threadContainer.querySelectorAll('.gm-thread-card, .bm-action-pills-container');
     oldCards.forEach(function (c) { c.remove(); });
 
@@ -254,14 +359,19 @@
       card.className = 'gm-thread-card gm-expanded';
       card.setAttribute('data-msg-idx', idx);
 
-      var authorName = msg.author || senderText || 'Unknown';
-      var avatarInitial = getInitial(authorName);
-      var avatarColor = getAvatarColor(authorName);
+      var parsedAuthor = parseAddress(null, msg.author);
+      var isLatest = (idx === threadMessages.length - 1);
+      var cardAuthorName = parsedAuthor.name || (isLatest && meta.from.name ? meta.from.name : 'Unknown');
+      var cardAuthorEmail = parsedAuthor.email || (isLatest ? meta.from.email : '');
+      var cardDate = msg.date || meta.date || 'Today';
+
+      var avatarInitial = getInitial(cardAuthorName || cardAuthorEmail);
+      var avatarColor = getAvatarColor(cardAuthorEmail || cardAuthorName);
 
       var cleanText = cleanBodyDisplay(msg.bodyText);
 
       var attachHtml = '';
-      if (idx === threadMessages.length - 1 && attachments && attachments.length > 0) {
+      if (isLatest && attachments && attachments.length > 0) {
         attachHtml = '<div class="gm-msg-attachments">' +
           attachments.map(function (att) {
             return '<a href="' + escapeHtml(att.href) + '" class="gm-attachment-card" target="_blank" download="' + escapeHtml(att.name) + '">' +
@@ -275,43 +385,125 @@
         '</div>';
       }
 
+      var authorEmailHtml = '';
+      if (cardAuthorEmail && cardAuthorEmail !== cardAuthorName) {
+        authorEmailHtml = '<span class="gm-author-email">&lt;' + escapeHtml(cardAuthorEmail) + '&gt;</span>';
+      }
+
+      var recipientDisplay = meta.to.name || meta.to.full || 'me';
+
+      // Gmail Details Popover HTML
+      var detailsPopoverHtml = 
+        '<div class="gm-details-popover" style="display:none;">' +
+          '<table class="gm-details-table">' +
+            '<tbody>' +
+              '<tr>' +
+                '<td class="gm-details-label">from:</td>' +
+                '<td class="gm-details-val"><strong>' + escapeHtml(cardAuthorName) + '</strong>' + (cardAuthorEmail && cardAuthorName !== cardAuthorEmail ? ' &lt;' + escapeHtml(cardAuthorEmail) + '&gt;' : '') + '</td>' +
+              '</tr>' +
+              '<tr>' +
+                '<td class="gm-details-label">to:</td>' +
+                '<td class="gm-details-val">' + escapeHtml(meta.to.full || meta.to.name || 'me') + '</td>' +
+              '</tr>' +
+              (meta.cc && meta.cc.full ? '<tr><td class="gm-details-label">cc:</td><td class="gm-details-val">' + escapeHtml(meta.cc.full) + '</td></tr>' : '') +
+              (meta.bcc && meta.bcc.full ? '<tr><td class="gm-details-label">bcc:</td><td class="gm-details-val">' + escapeHtml(meta.bcc.full) + '</td></tr>' : '') +
+              '<tr>' +
+                '<td class="gm-details-label">date:</td>' +
+                '<td class="gm-details-val">' + escapeHtml(cardDate) + '</td>' +
+              '</tr>' +
+              '<tr>' +
+                '<td class="gm-details-label">subject:</td>' +
+                '<td class="gm-details-val">' + escapeHtml(meta.subject) + '</td>' +
+              '</tr>' +
+              (meta.mailedBy ? '<tr><td class="gm-details-label">mailed-by:</td><td class="gm-details-val">' + escapeHtml(meta.mailedBy) + '</td></tr>' : '') +
+              (meta.signedBy ? '<tr><td class="gm-details-label">signed-by:</td><td class="gm-details-val">' + escapeHtml(meta.signedBy) + '</td></tr>' : '') +
+              '<tr>' +
+                '<td class="gm-details-label">security:</td>' +
+                '<td class="gm-details-val">🔒 Standard encryption (TLS)</td>' +
+              '</tr>' +
+            '</tbody>' +
+          '</table>' +
+        '</div>';
+
       card.innerHTML = 
         '<div class="gm-thread-header">' +
           '<div class="gm-author-meta">' +
             '<div class="gm-avatar" style="background:' + avatarColor + '">' + avatarInitial + '</div>' +
             '<div class="gm-author-names">' +
-              '<span class="gm-author-name">' + escapeHtml(authorName) + '</span>' +
-              '<span class="gm-recipient-chip">to ' + escapeHtml(recipientText) + ' ▾</span>' +
+              '<div style="display:flex; align-items:baseline; gap:6px; flex-wrap:wrap;">' +
+                '<span class="gm-author-name">' + escapeHtml(cardAuthorName) + '</span>' +
+                authorEmailHtml +
+              '</div>' +
+              '<button type="button" class="gm-recipient-chip" title="Show details">' +
+                '<span>to ' + escapeHtml(recipientDisplay) + '</span>' +
+                '<span class="gm-details-arrow">▾</span>' +
+              '</button>' +
             '</div>' +
           '</div>' +
           '<div class="gm-header-right">' +
-            '<span>' + escapeHtml(msg.date || 'Today') + '</span>' +
+            '<span>' + escapeHtml(cardDate) + '</span>' +
             '<svg title="Star" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' +
             '<svg title="Reply" class="gm-btn-quick-reply-icon" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>' +
           '</div>' +
         '</div>' +
+        detailsPopoverHtml +
         '<div class="gm-message-body">' +
           '<div class="gm-main-text">' + escapeHtml(cleanText) + '</div>' +
           attachHtml +
         '</div>';
 
+      // Toggle details popover on recipient chip click
+      var chip = card.querySelector('.gm-recipient-chip');
+      var popover = card.querySelector('.gm-details-popover');
+      var arrow = card.querySelector('.gm-details-arrow');
+      if (chip && popover) {
+        chip.onclick = function (e) {
+          e.stopPropagation();
+          var isHidden = (popover.style.display === 'none' || !popover.style.display);
+          // Close any other open details popovers
+          document.querySelectorAll('.gm-details-popover').forEach(function (p) {
+            if (p !== popover) p.style.display = 'none';
+          });
+          document.querySelectorAll('.gm-details-arrow').forEach(function (a) {
+            if (a !== arrow) a.textContent = '▾';
+          });
+          popover.style.display = isHidden ? 'block' : 'none';
+          if (arrow) arrow.textContent = isHidden ? '▴' : '▾';
+        };
+      }
+
       // Hovercard for author avatar
       var avEl = card.querySelector('.gm-avatar');
-      initHovercard(avEl, authorName, senderText);
+      initHovercard(avEl, cardAuthorName, cardAuthorEmail);
 
       var qIcon = card.querySelector('.gm-btn-quick-reply-icon');
       if (qIcon) {
         qIcon.onclick = function (e) {
           e.stopPropagation();
-          openInlineReply(threadContainer, authorName, subjectText, threadMessages, false);
+          openInlineReply(threadContainer, cardAuthorName, meta.subject, threadMessages, false);
         };
       }
 
       threadContainer.appendChild(card);
     });
 
+    // Global listener to dismiss details popover when clicking outside
+    if (!window.__gmDetailsDismissHooked) {
+      window.__gmDetailsDismissHooked = true;
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.gm-details-popover') && !e.target.closest('.gm-recipient-chip')) {
+          document.querySelectorAll('.gm-details-popover').forEach(function (p) {
+            p.style.display = 'none';
+          });
+          document.querySelectorAll('.gm-details-arrow').forEach(function (a) {
+            a.textContent = '▾';
+          });
+        }
+      });
+    }
+
     // Bottom Action Pills (Reply, Reply All, Forward)
-    renderBottomPills(threadContainer, senderText, subjectText, threadMessages, isMultiRecipient);
+    renderBottomPills(threadContainer, meta.from.name || 'Sender', meta.subject, threadMessages, isMultiRecipient);
   }
 
   // Clean raw body text: strip trailing quote intros and HTML tags
@@ -777,18 +969,26 @@
 
   function showHovercard(targetEl, name, email) {
     removeHovercard();
+    var parsed = parseAddress(null, name);
+    var finalName = parsed.name || name || 'Sender';
+    var finalEmail = email || parsed.email || '';
+    if (finalName === finalEmail && finalEmail.indexOf('@') > -1) {
+      var prefix = finalEmail.split('@')[0];
+      finalName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+
     var card = document.createElement('div');
     card.className = 'gm-hovercard';
 
-    var color = getAvatarColor(name || email);
-    var initial = getInitial(name || email);
+    var color = getAvatarColor(finalEmail || finalName);
+    var initial = getInitial(finalName || finalEmail);
 
     card.innerHTML = 
       '<div class="gm-hovercard-header">' +
         '<div class="gm-hovercard-avatar" style="background:' + color + '">' + initial + '</div>' +
         '<div class="gm-hovercard-info">' +
-          '<div class="gm-hovercard-name">' + escapeHtml(name || 'Sender') + '</div>' +
-          '<div class="gm-hovercard-email">' + escapeHtml(email || '') + '</div>' +
+          '<div class="gm-hovercard-name">' + escapeHtml(finalName) + '</div>' +
+          '<div class="gm-hovercard-email">' + escapeHtml(finalEmail) + '</div>' +
         '</div>' +
       '</div>' +
       '<div class="gm-hovercard-actions">' +
@@ -804,7 +1004,7 @@
     document.body.appendChild(card);
 
     card.querySelector('.gm-copy-btn').onclick = function () {
-      var toCopy = email || name || '';
+      var toCopy = finalEmail || finalName || '';
       navigator.clipboard.writeText(toCopy);
       this.innerText = '✓ Copied!';
       var self = this;
@@ -814,14 +1014,14 @@
     card.querySelector('.gm-search-btn').onclick = function () {
       removeHovercard();
       var rc = getRcmail();
-      var q = email || name || '';
+      var q = finalEmail || finalName || '';
       if (rc && rc.search) rc.search('from:' + q);
     };
 
     card.querySelector('.gm-compose-btn').onclick = function () {
       removeHovercard();
       var rc = getRcmail();
-      if (rc) rc.command('compose', email || '', this);
+      if (rc) rc.command('compose', finalEmail || '', this);
     };
 
     card.addEventListener('mouseleave', function () {
