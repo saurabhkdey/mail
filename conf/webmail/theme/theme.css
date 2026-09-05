@@ -1,0 +1,554 @@
+/* ==========================================================================
+   BillionMail Modern Roundcube Theme
+   Contemporary design system with glassmorphism, refined typography,
+   modernized reply/compose flow, card-based message list & dark mode.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bm-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --bm-primary: #4f46e5;
+  --bm-primary-hover: #4338ca;
+  --bm-primary-light: rgba(79, 70, 229, 0.1);
+  --bm-primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  --bm-primary-glow: 0 4px 14px 0 rgba(79, 70, 229, 0.35);
+  --bm-accent: #06b6d4;
+  --bm-success: #10b981;
+  --bm-warning: #f59e0b;
+  --bm-danger: #ef4444;
+  
+  --bm-bg: #f8fafc;
+  --bm-surface: #ffffff;
+  --bm-surface-subtle: #f1f5f9;
+  --bm-border: #e2e8f0;
+  --bm-border-hover: #cbd5e1;
+  
+  --bm-text: #0f172a;
+  --bm-text-secondary: #475569;
+  --bm-text-muted: #64748b;
+  
+  --bm-radius-sm: 6px;
+  --bm-radius: 10px;
+  --bm-radius-lg: 14px;
+  --bm-radius-full: 9999px;
+  
+  --bm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --bm-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --bm-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  --bm-glass-bg: rgba(255, 255, 255, 0.82);
+  --bm-glass-border: rgba(226, 232, 240, 0.7);
+  --bm-backdrop-blur: blur(16px);
+}
+
+/* Dark theme tokens */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bm-bg: #0b0f19;
+    --bm-surface: #111827;
+    --bm-surface-subtle: #1f2937;
+    --bm-border: #1f2937;
+    --bm-border-hover: #374151;
+    --bm-text: #f9fafb;
+    --bm-text-secondary: #9ca3af;
+    --bm-text-muted: #6b7280;
+    --bm-glass-bg: rgba(17, 24, 39, 0.85);
+    --bm-glass-border: rgba(31, 41, 55, 0.7);
+  }
+}
+
+body.dark-mode, html[data-theme="dark"] body {
+  --bm-bg: #0b0f19;
+  --bm-surface: #111827;
+  --bm-surface-subtle: #1f2937;
+  --bm-border: #1f2937;
+  --bm-border-hover: #374151;
+  --bm-text: #f9fafb;
+  --bm-text-secondary: #9ca3af;
+  --bm-text-muted: #6b7280;
+  --bm-glass-bg: rgba(17, 24, 39, 0.85);
+  --bm-glass-border: rgba(31, 41, 55, 0.7);
+}
+
+/* ==========================================================================
+   Base Typography & Reset Enhancements
+   ========================================================================== */
+body {
+  font-family: var(--bm-font-family) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bm-bg) !important;
+  color: var(--bm-text) !important;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   Header & Navigation (Glassmorphic)
+   ========================================================================== */
+#header, .header, .navbar {
+  background: var(--bm-glass-bg) !important;
+  backdrop-filter: var(--bm-backdrop-blur) !important;
+  -webkit-backdrop-filter: var(--bm-backdrop-blur) !important;
+  border-bottom: 1px solid var(--bm-glass-border) !important;
+  box-shadow: var(--bm-shadow-sm) !important;
+  padding: 0.5rem 1rem !important;
+  transition: all 0.25s ease;
+}
+
+#header .topbar, .navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#header .logo, .navbar-brand {
+  font-weight: 700 !important;
+  font-size: 1.15rem !important;
+  letter-spacing: -0.02em;
+  color: var(--bm-text) !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#header .logo::after {
+  content: "Webmail";
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--bm-radius-full);
+  background: var(--bm-primary-gradient);
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Sidebar & Folder List
+   ========================================================================== */
+#layout-sidebar, .sidebar, .treelist {
+  background: var(--bm-surface) !important;
+  border-right: 1px solid var(--bm-border) !important;
+}
+
+.treelist li a, .folder-list li a {
+  border-radius: var(--bm-radius) !important;
+  padding: 0.55rem 0.85rem !important;
+  margin: 0.15rem 0.4rem !important;
+  color: var(--bm-text-secondary) !important;
+  font-weight: 500 !important;
+  font-size: 0.9rem !important;
+  transition: all 0.18s ease-in-out !important;
+  display: flex;
+  align-items: center;
+}
+
+.treelist li a:hover, .folder-list li a:hover {
+  background: var(--bm-surface-subtle) !important;
+  color: var(--bm-text) !important;
+  transform: translateX(2px);
+}
+
+.treelist li.selected a, .folder-list li.selected a {
+  background: var(--bm-primary-light) !important;
+  color: var(--bm-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* Unread Badge */
+.unreadcount, .badge-unread {
+  background: var(--bm-primary-gradient) !important;
+  color: #ffffff !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  border-radius: var(--bm-radius-full) !important;
+  padding: 0.2rem 0.6rem !important;
+  min-width: 1.25rem;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3) !important;
+  margin-left: auto;
+}
+
+/* ==========================================================================
+   Message List (Cards & Elegance)
+   ========================================================================== */
+#messagelist, .messagelist, .records-table {
+  background: var(--bm-surface) !important;
+}
+
+#messagelist tr, .messagelist tr {
+  border-bottom: 1px solid var(--bm-border) !important;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+
+#messagelist tr:hover, .messagelist tr:hover {
+  background-color: var(--bm-surface-subtle) !important;
+}
+
+#messagelist tr.selected, .messagelist tr.selected {
+  background-color: var(--bm-primary-light) !important;
+}
+
+#messagelist tr.unread, .messagelist tr.unread {
+  font-weight: 600 !important;
+  background-color: rgba(79, 70, 229, 0.03);
+}
+
+#messagelist tr.unread td.subject, .messagelist tr.unread .subject {
+  color: var(--bm-text) !important;
+}
+
+#messagelist tr.unread::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: var(--bm-primary);
+  border-radius: 50%;
+  margin-right: 6px;
+  box-shadow: 0 0 6px rgba(79, 70, 229, 0.5);
+}
+
+/* ==========================================================================
+   Toolbar & Action Buttons
+   ========================================================================== */
+.toolbar, #messagetoolbar, #mailtoolbar {
+  background: var(--bm-surface) !important;
+  border-bottom: 1px solid var(--bm-border) !important;
+  padding: 0.5rem 1rem !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn, .button, a.button {
+  font-family: var(--bm-font-family) !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  border-radius: var(--bm-radius) !important;
+  padding: 0.45rem 0.95rem !important;
+  transition: all 0.18s ease-in-out !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid var(--bm-border) !important;
+  background: var(--bm-surface) !important;
+  color: var(--bm-text-secondary) !important;
+  box-shadow: var(--bm-shadow-sm) !important;
+}
+
+.btn:hover, .button:hover, a.button:hover {
+  background: var(--bm-surface-subtle) !important;
+  color: var(--bm-text) !important;
+  border-color: var(--bm-border-hover) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--bm-shadow) !important;
+}
+
+/* Primary Action Buttons (Send, Compose, Reply) */
+.btn-primary, .button.mainaction, a.button.send, .btn.send, button[type="submit"] {
+  background: var(--bm-primary-gradient) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 600 !important;
+  box-shadow: var(--bm-primary-glow) !important;
+}
+
+.btn-primary:hover, .button.mainaction:hover, a.button.send:hover, .btn.send:hover, button[type="submit"]:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%) !important;
+  color: #ffffff !important;
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.45) !important;
+}
+
+/* ==========================================================================
+   Modern Reply & Compose Experience (Gmail-style)
+   ========================================================================== */
+#compose-content, .compose-headers, #compose-body {
+  background: var(--bm-surface) !important;
+}
+
+#compose-content {
+  border-radius: var(--bm-radius-lg) !important;
+  box-shadow: var(--bm-shadow-lg) !important;
+  border: 1px solid var(--bm-border) !important;
+  margin: 0.5rem !important;
+  overflow: hidden;
+}
+
+.compose-headers {
+  border-bottom: 1px solid var(--bm-border) !important;
+  padding: 0.75rem 1.25rem !important;
+  background: var(--bm-surface) !important;
+}
+
+.compose-headers .row, .compose-headers .form-group {
+  margin-bottom: 0.45rem;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+  padding-bottom: 0.35rem;
+}
+
+.compose-headers label {
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  color: var(--bm-text-muted) !important;
+  min-width: 55px;
+  text-transform: capitalize;
+}
+
+.compose-headers input[type="text"], 
+.compose-headers textarea, 
+.form-control, 
+input.form-control {
+  border-radius: var(--bm-radius-sm) !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--bm-text) !important;
+  padding: 0.35rem 0.6rem !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+}
+
+.compose-headers input[type="text"]:focus, 
+.form-control:focus {
+  background: var(--bm-surface-subtle) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Recipient Chips (Gmail style) */
+.recipient-item, .chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bm-surface-subtle);
+  border: 1px solid var(--bm-border);
+  border-radius: var(--bm-radius-full);
+  padding: 0.2rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--bm-text);
+  margin: 2px 4px 2px 0;
+  box-shadow: var(--bm-shadow-sm);
+}
+
+/* Gmail-style Send Button and Action Bar */
+.btn-primary.send, .button.mainaction.send, a.button.send, button.send {
+  background: #1a73e8 !important;
+  background: linear-gradient(135deg, #1a73e8 0%, #0d62d9 100%) !important;
+  color: #ffffff !important;
+  border-radius: 24px !important;
+  padding: 0.55rem 1.6rem !important;
+  font-weight: 600 !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0.01em;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary.send:hover, .button.mainaction.send:hover, a.button.send:hover, button.send:hover {
+  background: linear-gradient(135deg, #1557b0 0%, #1a73e8 100%) !important;
+  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.5) !important;
+  transform: translateY(-1px);
+}
+
+/* Quoted text in reply */
+blockquote, .rcmQuote {
+  border-left: 2px solid #cbd5e1 !important;
+  background: transparent !important;
+  padding: 0.4rem 0 0.4rem 1rem !important;
+  margin: 0.75rem 0 !important;
+  color: var(--bm-text-muted) !important;
+  font-size: 0.9rem !important;
+}
+
+/* Gmail-style "Trimmed Content" (•••) toggle button */
+.rcmQuoteToggle, .blockquote-toggle, .bm-quote-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 18px !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  background: #e8eaed !important;
+  border: 1px solid #dadce0 !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  color: #5f6368 !important;
+  letter-spacing: 1px !important;
+  cursor: pointer !important;
+  margin: 0.5rem 0 !important;
+  transition: all 0.15s ease !important;
+}
+
+.rcmQuoteToggle:hover, .blockquote-toggle:hover, .bm-quote-toggle:hover {
+  background: #dadce0 !important;
+  color: #202124 !important;
+  border-color: #bdc1c6 !important;
+}
+
+body.dark-mode .rcmQuoteToggle,
+body.dark-mode .bm-quote-toggle,
+html[data-theme="dark"] .bm-quote-toggle {
+  background: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #9ca3af !important;
+}
+
+body.dark-mode .rcmQuoteToggle:hover,
+body.dark-mode .bm-quote-toggle:hover,
+html[data-theme="dark"] .bm-quote-toggle:hover {
+  background: #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+/* ==========================================================================
+   Message Preview & Reading Pane
+   ========================================================================== */
+#messagepreview, .message-part, .message-htmlpart {
+  background: var(--bm-surface) !important;
+  color: var(--bm-text) !important;
+  line-height: 1.65 !important;
+  border-radius: var(--bm-radius-lg);
+}
+
+.message-headers {
+  background: var(--bm-surface) !important;
+  border-bottom: 1px solid var(--bm-border) !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+.message-headers .subject {
+  font-size: 1.35rem !important;
+  font-weight: 700 !important;
+  color: var(--bm-text) !important;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+/* ==========================================================================
+   Login Screen Enhancement
+   ========================================================================== */
+body.action-login {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%) !important;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.action-login #login-form, 
+body.action-login .card,
+body.action-login .box-inner {
+  background: rgba(255, 255, 255, 0.94) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: var(--bm-radius-lg) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
+  padding: 2.25rem 2.5rem !important;
+  max-width: 420px;
+  width: 100%;
+}
+
+body.dark-mode.action-login #login-form,
+body.dark-mode.action-login .card {
+  background: rgba(17, 24, 39, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ==========================================================================
+   Smooth Transitions & Scrollbars
+   ========================================================================== */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bm-border-hover);
+  border-radius: var(--bm-radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bm-text-muted);
+}
+
+/* ==========================================================================
+   Gmail-style Bottom Quick Action Bar (Reply / Forward)
+   ========================================================================== */
+.bm-gmail-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  padding: 1.5rem 0 1rem 0 !important;
+  margin-top: 1.5rem !important;
+  border-top: 1px solid var(--bm-border) !important;
+}
+
+.bm-gmail-pill-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  border: 1px solid #dadce0 !important;
+  border-radius: 24px !important;
+  padding: 0.55rem 1.65rem !important;
+  font-family: var(--bm-font-family) !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  color: #3c4043 !important;
+  background: #ffffff !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease-in-out !important;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08) !important;
+}
+
+.bm-gmail-pill-btn svg {
+  color: #5f6368 !important;
+  transition: transform 0.15s ease;
+}
+
+.bm-gmail-pill-btn:hover {
+  background: #f8fafd !important;
+  border-color: #c2c7cf !important;
+  color: #202124 !important;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.15) !important;
+  transform: translateY(-1px);
+}
+
+.bm-gmail-pill-btn:hover svg {
+  transform: scale(1.1);
+}
+
+body.dark-mode .bm-gmail-pill-btn,
+html[data-theme="dark"] .bm-gmail-pill-btn {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.dark-mode .bm-gmail-pill-btn svg,
+html[data-theme="dark"] .bm-gmail-pill-btn svg {
+  color: #94a3b8 !important;
+}
+
+body.dark-mode .bm-gmail-pill-btn:hover,
+html[data-theme="dark"] .bm-gmail-pill-btn:hover {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #ffffff !important;
+}
