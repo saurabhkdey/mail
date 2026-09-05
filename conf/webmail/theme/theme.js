@@ -1013,31 +1013,35 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function syncThemeMode() {
-    var topDoc = (window.parent && window.parent.document) ? window.parent.document : document;
-    var isDark = topDoc.documentElement.classList.contains('dark-mode') || topDoc.body.classList.contains('dark-mode');
-    if (isDark) {
-      document.documentElement.classList.add('dark-mode');
-    } else {
-      document.documentElement.classList.remove('dark-mode');
-    }
+  var debounceTimer = null;
+  function debouncedInit() {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      transformThreadView();
+      hookComposeForm();
+    }, 150);
   }
 
-  // Observer to run when an email is loaded or DOM changes
+  // Observer to run safely when an email is loaded
   function init() {
-    syncThemeMode();
     transformThreadView();
     hookComposeForm();
     initKeyboardShortcuts();
 
-    var topDoc = (window.parent && window.parent.document) ? window.parent.document : document;
-    var themeObserver = new MutationObserver(syncThemeMode);
-    themeObserver.observe(topDoc.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-    var observer = new MutationObserver(function () {
-      syncThemeMode();
-      transformThreadView();
-      hookComposeForm();
+    var observer = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var target = mutations[i].target;
+        if (target && target.closest && (
+          target.closest('.gm-thread-container') || 
+          target.closest('.gm-thread-card') ||
+          target.closest('.gm-hovercard') ||
+          target.closest('.gm-toast') ||
+          target.closest('.gm-inline-reply-box')
+        )) {
+          return; // Ignore internal UI mutations
+        }
+      }
+      debouncedInit();
     });
 
     if (document.body) {
@@ -1062,7 +1066,7 @@
         if (rc && typeof rc.check_recent === 'function') {
           rc.check_recent();
         }
-      }, 15000);
+      }, 20000);
     }
   }
 
