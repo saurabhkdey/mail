@@ -126,28 +126,6 @@
     return parseTimestamp(a.date) - parseTimestamp(b.date);
   }
 
-  // Merge and deduplicate thread messages, preserving strict chronological order
-  function mergeThreads(cached, current) {
-    if (!Array.isArray(cached) || cached.length === 0) return (current || []).sort(sortChronological);
-    if (!Array.isArray(current) || current.length === 0) return cached.sort(sortChronological);
-
-    var result = cached.slice();
-    current.forEach(function (cMsg) {
-      var cBody = (cMsg.bodyText || cMsg.snippet || '').trim().toLowerCase();
-      if (!cBody) return;
-      var exists = result.some(function (rMsg) {
-        var rBody = (rMsg.bodyText || rMsg.snippet || '').trim().toLowerCase();
-        return rBody === cBody ||
-          (rBody.length > 6 && cBody.indexOf(rBody) > -1) ||
-          (cBody.length > 6 && rBody.indexOf(cBody) > -1);
-      });
-      if (!exists) {
-        result.push(cMsg);
-      }
-    });
-
-    return result.sort(sortChronological);
-  }
 
   // Extract real attachments from original message DOM
   function extractOriginalAttachments(doc) {
@@ -251,20 +229,10 @@
     // Extract conversation messages from nested quotes & text
     var threadMessages = extractAllThreadMessages(msgBody, senderText, dateText);
 
-    // Check localStorage cache for unified thread history across folders
-    try {
-      var cachedJson = localStorage.getItem('bm_thread_' + threadKey);
-      if (cachedJson) {
-        var cached = JSON.parse(cachedJson);
-        threadMessages = mergeThreads(cached, threadMessages);
-      }
-      localStorage.setItem('bm_thread_' + threadKey, JSON.stringify(threadMessages));
-    } catch (e) {}
-
     // Sort strictly chronological: Card 1 (oldest top) -> Card N (latest bottom)
     threadMessages.sort(sortChronological);
 
-    // Render Cards in Stack
+    // Render Cards in Stack (Fully expanded, no collapsed cards)
     renderCards(threadContainer, threadMessages, recipientText, senderText, subjectText, isMultiRecipient, attachments);
 
     // Replace original msgBody with new Thread Container
@@ -274,7 +242,7 @@
     }
   }
 
-  // Render all thread cards in chronological sequence
+  // Render all thread cards in chronological sequence (Always fully expanded)
   function renderCards(threadContainer, threadMessages, recipientText, senderText, subjectText, isMultiRecipient, attachments) {
     var oldCards = threadContainer.querySelectorAll('.gm-thread-card, .bm-action-pills-container');
     oldCards.forEach(function (c) { c.remove(); });
@@ -282,9 +250,8 @@
     threadMessages.sort(sortChronological);
 
     threadMessages.forEach(function (msg, idx) {
-      var isLatest = (idx === threadMessages.length - 1);
       var card = document.createElement('div');
-      card.className = 'gm-thread-card ' + (isLatest ? 'gm-expanded' : 'gm-collapsed');
+      card.className = 'gm-thread-card gm-expanded';
       card.setAttribute('data-msg-idx', idx);
 
       var authorName = msg.author || senderText || 'Unknown';
@@ -293,68 +260,51 @@
 
       var cleanText = cleanBodyDisplay(msg.bodyText);
 
-      if (isLatest) {
-        // Expanded Latest Card (Active Email at Bottom)
-        var attachHtml = '';
-        if (attachments && attachments.length > 0) {
-          attachHtml = '<div class="gm-msg-attachments">' +
-            attachments.map(function (att) {
-              return '<a href="' + escapeHtml(att.href) + '" class="gm-attachment-card" target="_blank" download="' + escapeHtml(att.name) + '">' +
-                '<div class="gm-attach-icon ' + att.type + '">' + att.type.toUpperCase() + '</div>' +
-                '<div class="gm-attach-meta">' +
-                  '<span class="gm-attach-filename" title="' + escapeHtml(att.name) + '">' + escapeHtml(att.name) + '</span>' +
-                  '<span class="gm-attach-filesize">' + escapeHtml(att.size || 'Download') + '</span>' +
-                '</div>' +
-              '</a>';
-            }).join('') +
-          '</div>';
-        }
-
-        card.innerHTML = 
-          '<div class="gm-thread-header">' +
-            '<div class="gm-author-meta">' +
-              '<div class="gm-avatar" style="background:' + avatarColor + '">' + avatarInitial + '</div>' +
-              '<div class="gm-author-names">' +
-                '<span class="gm-author-name">' + escapeHtml(authorName) + '</span>' +
-                '<span class="gm-recipient-chip">to ' + escapeHtml(recipientText) + ' ▾</span>' +
+      var attachHtml = '';
+      if (idx === threadMessages.length - 1 && attachments && attachments.length > 0) {
+        attachHtml = '<div class="gm-msg-attachments">' +
+          attachments.map(function (att) {
+            return '<a href="' + escapeHtml(att.href) + '" class="gm-attachment-card" target="_blank" download="' + escapeHtml(att.name) + '">' +
+              '<div class="gm-attach-icon ' + att.type + '">' + att.type.toUpperCase() + '</div>' +
+              '<div class="gm-attach-meta">' +
+                '<span class="gm-attach-filename" title="' + escapeHtml(att.name) + '">' + escapeHtml(att.name) + '</span>' +
+                '<span class="gm-attach-filesize">' + escapeHtml(att.size || 'Download') + '</span>' +
               '</div>' +
-            '</div>' +
-            '<div class="gm-header-right">' +
-              '<span>' + escapeHtml(msg.date || 'Today') + '</span>' +
-              '<svg title="Star" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' +
-              '<svg title="Reply" class="gm-btn-quick-reply-icon" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>' +
+            '</a>';
+          }).join('') +
+        '</div>';
+      }
+
+      card.innerHTML = 
+        '<div class="gm-thread-header">' +
+          '<div class="gm-author-meta">' +
+            '<div class="gm-avatar" style="background:' + avatarColor + '">' + avatarInitial + '</div>' +
+            '<div class="gm-author-names">' +
+              '<span class="gm-author-name">' + escapeHtml(authorName) + '</span>' +
+              '<span class="gm-recipient-chip">to ' + escapeHtml(recipientText) + ' ▾</span>' +
             '</div>' +
           '</div>' +
-          '<div class="gm-message-body">' +
-            '<div class="gm-main-text">' + escapeHtml(cleanText) + '</div>' +
-            attachHtml +
-          '</div>';
+          '<div class="gm-header-right">' +
+            '<span>' + escapeHtml(msg.date || 'Today') + '</span>' +
+            '<svg title="Star" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' +
+            '<svg title="Reply" class="gm-btn-quick-reply-icon" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>' +
+          '</div>' +
+        '</div>' +
+        '<div class="gm-message-body">' +
+          '<div class="gm-main-text">' + escapeHtml(cleanText) + '</div>' +
+          attachHtml +
+        '</div>';
 
-        // Hovercard for author avatar
-        var avEl = card.querySelector('.gm-avatar');
-        initHovercard(avEl, authorName, senderText);
+      // Hovercard for author avatar
+      var avEl = card.querySelector('.gm-avatar');
+      initHovercard(avEl, authorName, senderText);
 
-        var qIcon = card.querySelector('.gm-btn-quick-reply-icon');
-        if (qIcon) {
-          qIcon.onclick = function (e) {
-            e.stopPropagation();
-            openInlineReply(threadContainer, authorName, subjectText, threadMessages, false);
-          };
-        }
-      } else {
-        // Compact Collapsed Previous Message Card
-        card.innerHTML = 
-          '<div class="gm-avatar" style="width:28px; height:28px; font-size:13px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
-          '<span class="gm-collapsed-author">' + escapeHtml(authorName) + '</span>' +
-          '<span class="gm-collapsed-snippet">' + escapeHtml(cleanText.substring(0, 100)) + '</span>' +
-          '<span class="gm-collapsed-date">' + escapeHtml(msg.date || '') + '</span>';
-
-        card.onclick = function () {
-          toggleCardExpansion(card, msg, recipientText);
+      var qIcon = card.querySelector('.gm-btn-quick-reply-icon');
+      if (qIcon) {
+        qIcon.onclick = function (e) {
+          e.stopPropagation();
+          openInlineReply(threadContainer, authorName, subjectText, threadMessages, false);
         };
-
-        var cAv = card.querySelector('.gm-avatar');
-        initHovercard(cAv, authorName, senderText);
       }
 
       threadContainer.appendChild(card);
@@ -375,42 +325,6 @@
       .replace(/<[^>]+>/g, '')
       .trim();
     return cleaned || text.replace(/<[^>]+>/g, '').trim();
-  }
-
-  // Toggle card between collapsed and expanded
-  function toggleCardExpansion(card, msg, recipientText) {
-    var isCollapsed = card.classList.contains('gm-collapsed');
-    var authorName = msg.author || 'Unknown';
-    var avatarInitial = getInitial(authorName);
-    var avatarColor = getAvatarColor(authorName);
-    var cleanText = cleanBodyDisplay(msg.bodyText);
-
-    if (isCollapsed) {
-      card.classList.remove('gm-collapsed');
-      card.classList.add('gm-expanded');
-      card.innerHTML = 
-        '<div class="gm-thread-header">' +
-          '<div class="gm-author-meta">' +
-            '<div class="gm-avatar" style="background:' + avatarColor + '">' + avatarInitial + '</div>' +
-            '<div class="gm-author-names">' +
-              '<span class="gm-author-name">' + escapeHtml(authorName) + '</span>' +
-              '<span class="gm-recipient-chip">to ' + escapeHtml(recipientText) + '</span>' +
-            '</div>' +
-          '</div>' +
-          '<div class="gm-header-right">' +
-            '<span>' + escapeHtml(msg.date || '') + '</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="gm-message-body">' + escapeHtml(cleanText) + '</div>';
-    } else {
-      card.classList.remove('gm-expanded');
-      card.classList.add('gm-collapsed');
-      card.innerHTML = 
-        '<div class="gm-avatar" style="width:28px; height:28px; font-size:13px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
-        '<span class="gm-collapsed-author">' + escapeHtml(authorName) + '</span>' +
-        '<span class="gm-collapsed-snippet">' + escapeHtml(cleanText.substring(0, 100)) + '</span>' +
-        '<span class="gm-collapsed-date">' + escapeHtml(msg.date || '') + '</span>';
-    }
   }
 
   // Extract all messages from text or blockquotes
@@ -743,10 +657,6 @@
           threadMessages.push(newMsg);
           threadMessages.sort(sortChronological);
 
-          try {
-            localStorage.setItem('bm_thread_' + threadKey, JSON.stringify(threadMessages));
-          } catch (e) {}
-
           replyBox.remove();
           renderCards(container, threadMessages, recipient, myName, subject, false, []);
 
@@ -1037,43 +947,11 @@
   function hookComposeForm() {
     injectComposeNavButtons();
 
-    var forms = document.querySelectorAll('form[name="form"], #compose-form, #form');
-    forms.forEach(function (form) {
-      if (form.getAttribute('data-bm-hooked')) return;
-      form.setAttribute('data-bm-hooked', 'true');
+  }
 
-      form.addEventListener('submit', function () {
-        try {
-          var subjInput = form.querySelector('input[name="_subject"]');
-          var msgInput = form.querySelector('textarea[name="_message"]');
-          if (subjInput) {
-            var threadKey = cleanSubjectKey(subjInput.value);
-            var replyBody = '';
-            if (msgInput) replyBody = msgInput.value;
-            if (typeof tinyMCE !== 'undefined' && tinyMCE.activeEditor) {
-              replyBody = tinyMCE.activeEditor.getContent({ format: 'text' });
-            }
-            var pureReply = cleanBodyDisplay(replyBody);
-            if (pureReply) {
-              var now = new Date();
-              var timeStr = 'Today ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-              var cached = [];
-              try {
-                var raw = localStorage.getItem('bm_thread_' + threadKey);
-                if (raw) cached = JSON.parse(raw);
-              } catch (e) {}
-              cached.push({
-                author: getMyName(),
-                date: timeStr,
-                bodyText: pureReply
-              });
-              cached.sort(sortChronological);
-              localStorage.setItem('bm_thread_' + threadKey, JSON.stringify(cached));
-            }
-          }
-        } catch (e) {}
-      });
-    });
+  // Intercept standard Roundcube compose form to inject Back and Discard navigation buttons
+  function hookComposeForm() {
+    injectComposeNavButtons();
   }
 
   function showToast(msg) {
@@ -1102,6 +980,18 @@
 
   // Observer to run safely when an email is loaded
   function init() {
+    // Purge any legacy artificial thread caches from localStorage
+    try {
+      var keysToRemove = [];
+      for (var k = 0; k < localStorage.length; k++) {
+        var keyName = localStorage.key(k);
+        if (keyName && keyName.indexOf('bm_thread_') === 0) {
+          keysToRemove.push(keyName);
+        }
+      }
+      keysToRemove.forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) {}
+
     transformThreadView();
     hookComposeForm();
     initKeyboardShortcuts();

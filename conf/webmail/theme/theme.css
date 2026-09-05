@@ -286,52 +286,8 @@ header.header,
   box-shadow: var(--gm-shadow-card);
 }
 
-/* Collapsed Previous Thread Card (Compact Gmail Row) */
-.gm-thread-card.gm-collapsed {
-  cursor: pointer;
-  background: #fbfcfe;
-  padding: 8px 16px !important;
-  min-height: 48px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  box-sizing: border-box !important;
-}
-
-.gm-thread-card.gm-collapsed:hover {
-  background: var(--gm-bg-card-hover) !important;
-  box-shadow: var(--gm-shadow-hover) !important;
-  border-color: #c4c7c5 !important;
-}
-
-.gm-collapsed-author {
-  font-weight: 600 !important;
-  font-size: 13.5px !important;
-  color: var(--gm-text-primary) !important;
-  white-space: nowrap !important;
-  min-width: 140px !important;
-  max-width: 220px !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-.gm-collapsed-snippet {
-  color: var(--gm-text-secondary) !important;
-  font-size: 13.5px !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  flex: 1 !important;
-}
-
-.gm-collapsed-date {
-  color: var(--gm-text-muted) !important;
-  font-size: 12px !important;
-  white-space: nowrap !important;
-}
-
-/* Expanded Active Thread Card */
-.gm-thread-card.gm-expanded {
+/* Thread Message Cards - Always Fully Expanded */
+.gm-thread-card {
   padding: 20px !important;
 }
 
@@ -723,15 +679,6 @@ html.dark-mode .toolbar {
   border-bottom-color: #3c4043 !important;
 }
 
-html.dark-mode .gm-thread-card.gm-collapsed {
-  background: #252627 !important;
-  border-color: #3c4043 !important;
-}
-
-html.dark-mode .gm-thread-card.gm-collapsed:hover {
-  background: #303133 !important;
-  border-color: #5f6368 !important;
-}
 
 html.dark-mode .bm-action-pill {
   background: #2d2e30 !important;
