@@ -976,8 +976,67 @@
     });
   }
 
+  // Inject navigation and back buttons when on compose page
+  function injectComposeNavButtons() {
+    // 1. BillionMail logo click -> back to inbox
+    var logo = document.querySelector('#layout-menu .popover-header img, #layout-menu #logo');
+    if (logo && !logo.getAttribute('data-bm-nav')) {
+      logo.setAttribute('data-bm-nav', 'true');
+      logo.style.cursor = 'pointer';
+      logo.title = 'Back to Inbox';
+      logo.onclick = function (e) {
+        e.preventDefault();
+        window.location.href = './?_task=mail';
+      };
+    }
+
+    // 2. Toolbar Back Button
+    var toolbar = document.querySelector('#messagetoolbar');
+    if (toolbar && !toolbar.querySelector('.gm-compose-back-btn')) {
+      var backBtn = document.createElement('a');
+      backBtn.href = './?_task=mail';
+      backBtn.className = 'button gm-compose-back-btn';
+      backBtn.title = 'Back to Inbox';
+      backBtn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:middle;fill:currentColor;margin-right:6px;"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg><span>Back to Mail</span>';
+      backBtn.onclick = function (e) {
+        e.preventDefault();
+        var rc = getRcmail();
+        if (rc && typeof rc.command === 'function') {
+          rc.command('list', 'INBOX');
+        } else {
+          window.location.href = './?_task=mail';
+        }
+      };
+      toolbar.insertBefore(backBtn, toolbar.firstChild);
+    }
+
+    // 3. Discard Button next to Send
+    var formButtons = document.querySelector('.formbuttons');
+    if (formButtons && !formButtons.querySelector('.gm-discard-btn')) {
+      var discardBtn = document.createElement('button');
+      discardBtn.type = 'button';
+      discardBtn.className = 'gm-discard-btn';
+      discardBtn.title = 'Discard Draft';
+      discardBtn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;vertical-align:middle;fill:currentColor;margin-right:4px;"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg><span>Discard</span>';
+      discardBtn.onclick = function (e) {
+        e.preventDefault();
+        if (confirm('Discard this draft and return to inbox?')) {
+          window.location.href = './?_task=mail';
+        }
+      };
+      var sendBtn = formButtons.querySelector('.send, button[type="submit"]');
+      if (sendBtn && sendBtn.nextSibling) {
+        formButtons.insertBefore(discardBtn, sendBtn.nextSibling);
+      } else {
+        formButtons.appendChild(discardBtn);
+      }
+    }
+  }
+
   // Intercept standard Roundcube compose form to persist sent replies
   function hookComposeForm() {
+    injectComposeNavButtons();
+
     var forms = document.querySelectorAll('form[name="form"], #compose-form, #form');
     forms.forEach(function (form) {
       if (form.getAttribute('data-bm-hooked')) return;

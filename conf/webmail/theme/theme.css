@@ -1089,3 +1089,63 @@ html.dark-mode .gm-hovercard-btn {
   background: var(--gm-blue-hover);
 }
 
+/* Compose Navigation Back Button & Discard Button */
+.gm-compose-back-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: var(--gm-blue-light) !important;
+  color: #041e49 !important;
+  border-radius: 8px !important;
+  padding: 6px 14px !important;
+  margin-right: 12px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.gm-compose-back-btn:hover {
+  background: #b3dbf5 !important;
+  color: #001d35 !important;
+  transform: translateX(-2px);
+}
+
+.gm-discard-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #f1f3f4 !important;
+  color: #5f6368 !important;
+  border: 1px solid var(--gm-border-light) !important;
+  border-radius: 8px !important;
+  padding: 6px 14px !important;
+  margin-left: 10px !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.gm-discard-btn:hover {
+  background: #fee2e2 !important;
+  color: #dc2626 !important;
+  border-color: #fca5a5 !important;
+}
+
+html.dark-mode .gm-compose-back-btn {
+  background: #004a77 !important;
+  color: #c2e7ff !important;
+}
+
+html.dark-mode .gm-discard-btn {
+  background: #2d2e30 !important;
+  color: #c4c7c5 !important;
+  border-color: #3c4043 !important;
+}
+
+html.dark-mode .gm-discard-btn:hover {
+  background: #451a1a !important;
+  color: #f87171 !important;
+}
+
+
