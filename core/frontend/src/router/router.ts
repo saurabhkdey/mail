@@ -24,7 +24,7 @@ const routesReflectList = [
 const modules = import.meta.webpackContext('./modules', {
 	// Whether to search for subdirectories
 	recursive: false,
-	regExp: /^[^.]+\.ts$/,
+	regExp: /^\.\/(?!.*\.test).*\.ts$/,
 })
 
 // Module routes
@@ -33,17 +33,20 @@ export let menuList: RouteRecordRaw[] = []
 // Iterate through the module list to generate module routes
 for (const path of modules.keys()) {
 	const mod = modules(path)
-	if (is<{ default: RouteRecordRaw }>(mod, 'Module')) {
-		menuList.push(mod.default)
+	const route = (mod && (mod.default || mod)) as RouteRecordRaw
+	if (route && route.path) {
+		menuList.push(route)
 	}
 }
 
-// Sort module routes
-menuList = menuList.reduce((p: RouteRecordRaw[], v: RouteRecordRaw) => {
-	const routeIndex = routesReflectList.findIndex(item => item == v.meta!.title)
-	p[routeIndex] = v
-	return p
-}, [] as RouteRecordRaw[])
+// Sort module routes safely without holes
+menuList = menuList
+	.filter(v => Boolean(v && v.meta))
+	.sort((a, b) => {
+		const aIndex = routesReflectList.findIndex(item => item === a.meta?.title)
+		const bIndex = routesReflectList.findIndex(item => item === b.meta?.title)
+		return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex)
+	})
 
 const otherArray: RouteRecordRaw[] = []
 
