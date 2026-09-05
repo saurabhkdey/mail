@@ -1196,10 +1196,92 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // Format thread rows into clean single-row Gmail conversation threads
+  function formatGmailThreadRows() {
+    var rc = getRcmail();
+    if (!rc || !rc.message_list || !rc.message_list.rows) return;
+
+    var rows = rc.message_list.rows;
+    Object.keys(rows).forEach(function (uid) {
+      var rowData = rows[uid];
+      if (!rowData || !rowData.obj) return;
+      var tr = rowData.obj;
+
+      // If it's a child row, ensure it's hidden
+      if (rowData.depth && rowData.depth > 0) {
+        tr.style.display = 'none';
+        return;
+      }
+
+      // If it's a thread root with children
+      if (rowData.has_children) {
+        var children = (typeof rc.message_list.row_children === 'function') ? rc.message_list.row_children(uid) : [];
+        if (children && children.length > 0) {
+          var count = 1 + children.length;
+          var latestUid = children[children.length - 1];
+          var latestRow = rows[latestUid];
+
+          // 1. Hide all child rows completely
+          children.forEach(function (cuid) {
+            if (rows[cuid] && rows[cuid].obj) {
+              rows[cuid].obj.style.display = 'none';
+            }
+          });
+
+          // 2. Add or update Gmail thread count badge on the root row
+          var subjCell = tr.querySelector('td.subject');
+          if (subjCell) {
+            var badge = subjCell.querySelector('.gm-thread-count-badge');
+            if (!badge) {
+              badge = document.createElement('span');
+              badge.className = 'gm-thread-count-badge';
+              subjCell.appendChild(badge);
+            }
+            badge.textContent = '(' + count + ')';
+          }
+
+          // 3. Update the date cell on the root row to the LATEST reply date
+          if (latestRow && latestRow.obj) {
+            var latestDateCell = latestRow.obj.querySelector('td.date');
+            var rootDateCell = tr.querySelector('td.date');
+            if (latestDateCell && rootDateCell && latestDateCell.innerText.trim()) {
+              rootDateCell.innerText = latestDateCell.innerText.trim();
+            }
+          }
+
+          // 4. On click, load the LATEST message of the thread
+          if (!tr.getAttribute('data-gm-thread-hooked')) {
+            tr.setAttribute('data-gm-thread-hooked', 'true');
+            tr.addEventListener('click', function (e) {
+              // Don't intercept checkbox clicks or drag actions
+              if (e.target.tagName === 'INPUT' || (e.target.classList && e.target.classList.contains('selection'))) {
+                return;
+              }
+              e.preventDefault();
+              e.stopPropagation();
+
+              // Mark root row as visually selected
+              document.querySelectorAll('#messagelist tr.selected').forEach(function (r) {
+                r.classList.remove('selected');
+              });
+              tr.classList.add('selected');
+
+              // Load latest message so reading pane shows full conversation history
+              if (typeof rc.show_message === 'function') {
+                rc.show_message(latestUid, false, true);
+              }
+            }, true);
+          }
+        }
+      }
+    });
+  }
+
   var debounceTimer = null;
   function debouncedInit() {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
+      formatGmailThreadRows();
       transformThreadView();
       hookComposeForm();
     }, 150);
@@ -1231,9 +1313,17 @@
     } catch (e) {}
 
     ensureThreadedListMode();
+    formatGmailThreadRows();
     transformThreadView();
     hookComposeForm();
     initKeyboardShortcuts();
+
+    var rc = getRcmail();
+    if (rc && rc.addEventListener) {
+      rc.addEventListener('listupdate', function () {
+        formatGmailThreadRows();
+      });
+    }
 
     var observer = new MutationObserver(function (mutations) {
       for (var i = 0; i < mutations.length; i++) {

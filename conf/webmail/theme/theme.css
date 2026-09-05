@@ -1191,23 +1191,28 @@ html.dark-mode .gm-details-label {
   color: #9aa0a6 !important;
 }
 
-/* Gmail-Style Thread Count Badge in Message List */
-.messagelist tr.thread td.subject span.badge,
-.messagelist tr.thread .threads-count,
-.messagelist tr.thread .badge {
+/* Gmail Clean Flat Message List (hide tree twisties and child rows) */
+.messagelist td.threads,
+.messagelist th.threads,
+.messagelist span.branch,
+.messagelist .collapsed,
+.messagelist .expanded {
+  display: none !important;
+}
+
+.gm-thread-count-badge {
+  display: inline-block !important;
   background: #e8eaed !important;
   color: #3c4043 !important;
-  font-size: 11px !important;
+  font-size: 11.5px !important;
   font-weight: 600 !important;
   padding: 1px 6px !important;
   border-radius: 10px !important;
   margin-left: 6px !important;
-  display: inline-block !important;
+  vertical-align: middle !important;
 }
 
-html.dark-mode .messagelist tr.thread td.subject span.badge,
-html.dark-mode .messagelist tr.thread .threads-count,
-html.dark-mode .messagelist tr.thread .badge {
+html.dark-mode .gm-thread-count-badge {
   background: #3c4043 !important;
   color: #e8eaed !important;
 }
