@@ -1013,13 +1013,29 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function syncThemeMode() {
+    var topDoc = (window.parent && window.parent.document) ? window.parent.document : document;
+    var isDark = topDoc.documentElement.classList.contains('dark-mode') || topDoc.body.classList.contains('dark-mode');
+    if (isDark) {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+    }
+  }
+
   // Observer to run when an email is loaded or DOM changes
   function init() {
+    syncThemeMode();
     transformThreadView();
     hookComposeForm();
     initKeyboardShortcuts();
 
+    var topDoc = (window.parent && window.parent.document) ? window.parent.document : document;
+    var themeObserver = new MutationObserver(syncThemeMode);
+    themeObserver.observe(topDoc.documentElement, { attributes: true, attributeFilter: ['class'] });
+
     var observer = new MutationObserver(function () {
+      syncThemeMode();
       transformThreadView();
       hookComposeForm();
     });

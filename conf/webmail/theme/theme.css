@@ -565,100 +565,143 @@ header.header,
   display: none !important;
 }
 
-/* 10. Adaptive Google Dark Mode */
-@media (prefers-color-scheme: dark), (data-theme="dark") {
-  :root {
-    --gm-text-primary: #e8eaed;
-    --gm-text-secondary: #9aa0a6;
-    --gm-text-muted: #80868b;
-    --gm-border: #3c4043;
-    --gm-border-light: #2d2e30;
-    --gm-bg-app: #1f1f1f;
-    --gm-bg-card: #2d2e30;
-    --gm-bg-card-hover: #38393c;
-    --gm-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
+/* 10. Google Dark Mode (Applied only when dark mode is explicitly toggled) */
+html.dark-mode {
+  --gm-text-primary: #e8eaed;
+  --gm-text-secondary: #9aa0a6;
+  --gm-text-muted: #80868b;
+  --gm-border: #3c4043;
+  --gm-border-light: #2d2e30;
+  --gm-bg-app: #1f1f1f;
+  --gm-bg-card: #2d2e30;
+  --gm-bg-card-hover: #38393c;
+  --gm-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
 
-  body, #layout, #layout-content, #layout-list, #layout-sidebar {
-    background-color: #1f1f1f !important;
-    color: #e8eaed !important;
-  }
+html.dark-mode body,
+html.dark-mode #layout,
+html.dark-mode #layout-content,
+html.dark-mode #layout-list,
+html.dark-mode #layout-sidebar {
+  background-color: #1f1f1f !important;
+  color: #e8eaed !important;
+}
 
-  #layout-menu, .header, header.header, .toolbar {
-    background: rgba(31, 31, 31, 0.95) !important;
-    border-bottom-color: #3c4043 !important;
-  }
+html.dark-mode #layout-menu,
+html.dark-mode .header,
+html.dark-mode header.header,
+html.dark-mode .toolbar {
+  background: rgba(31, 31, 31, 0.95) !important;
+  border-bottom-color: #3c4043 !important;
+}
 
-  .gm-thread-card.gm-collapsed {
-    background: #252627 !important;
-    border-color: #3c4043 !important;
-  }
+html.dark-mode .gm-thread-card.gm-collapsed {
+  background: #252627 !important;
+  border-color: #3c4043 !important;
+}
 
-  .gm-thread-card.gm-collapsed:hover {
-    background: #303133 !important;
-    border-color: #5f6368 !important;
-  }
+html.dark-mode .gm-thread-card.gm-collapsed:hover {
+  background: #303133 !important;
+  border-color: #5f6368 !important;
+}
 
-  .bm-action-pill {
-    background: #2d2e30 !important;
-    color: #e8eaed !important;
-    border-color: #4a4d51 !important;
-  }
+html.dark-mode .bm-action-pill {
+  background: #2d2e30 !important;
+  color: #e8eaed !important;
+  border-color: #4a4d51 !important;
+}
 
-  .bm-action-pill:hover {
-    background: #38393c !important;
-    border-color: #5f6368 !important;
-  }
+html.dark-mode .bm-action-pill:hover {
+  background: #38393c !important;
+  border-color: #5f6368 !important;
+}
 
-  .gm-inline-reply-box {
-    background: #2d2e30 !important;
-    border-color: #3c4043 !important;
-  }
+html.dark-mode .gm-inline-reply-box {
+  background: #2d2e30 !important;
+  border-color: #3c4043 !important;
+}
 
-  .gm-inline-header, .gm-inline-footer {
-    background: #242526 !important;
-    border-color: #3c4043 !important;
-  }
+html.dark-mode .gm-inline-header,
+html.dark-mode .gm-inline-footer {
+  background: #242526 !important;
+  border-color: #3c4043 !important;
+}
 
-  .gm-inline-header .gm-reply-to {
-    background: #1a3250 !important;
-    color: #c2e7ff !important;
-  }
+html.dark-mode .gm-inline-header .gm-reply-to {
+  background: #1a3250 !important;
+  color: #c2e7ff !important;
+}
 
-  .gm-reply-textarea {
-    color: #e8eaed !important;
-  }
+html.dark-mode .gm-reply-textarea {
+  color: #e8eaed !important;
+}
 
-  .gm-inbox-badge {
-    background: #3c4043 !important;
-    color: #c4c7c5 !important;
-  }
+html.dark-mode .gm-inbox-badge {
+  background: #3c4043 !important;
+  color: #c4c7c5 !important;
+}
 
-  .bm-trimmed-toggle {
-    background: #3c4043 !important;
-    color: #9aa0a6 !important;
-  }
+html.dark-mode .bm-trimmed-toggle {
+  background: #3c4043 !important;
+  color: #9aa0a6 !important;
+}
 
-  .messagelist tr td {
-    border-bottom-color: #2d2e30 !important;
-  }
+html.dark-mode .messagelist tr td {
+  border-bottom-color: #2d2e30 !important;
+}
 
-  .messagelist tr:hover td {
-    background-color: #283548 !important;
-  }
+html.dark-mode .messagelist tr:hover td {
+  background-color: #283548 !important;
+}
 
-  .messagelist tr.selected td {
-    background-color: #1a3250 !important;
-  }
+html.dark-mode .messagelist tr.selected td {
+  background-color: #1a3250 !important;
+}
 
-  .treelist li a {
-    color: #e8eaed !important;
-  }
+html.dark-mode .treelist li a {
+  color: #e8eaed !important;
+}
 
-  .treelist li.selected a {
-    background: #004a77 !important;
-    color: #c2e7ff !important;
-  }
+html.dark-mode .treelist li.selected a {
+  background: #004a77 !important;
+  color: #c2e7ff !important;
+}
+
+html.dark-mode .gm-attachment-card {
+  background: #2d2e30 !important;
+  border-color: #3c4043 !important;
+  color: #e8eaed !important;
+}
+
+html.dark-mode .gm-attachment-chip-list {
+  background: #252627 !important;
+  border-color: #3c4043 !important;
+}
+
+html.dark-mode .gm-attach-chip {
+  background: #2d2e30 !important;
+  border-color: #3c4043 !important;
+  color: #e8eaed !important;
+}
+
+html.dark-mode .gm-hovercard {
+  background: #2d2e30 !important;
+  border-color: #3c4043 !important;
+  color: #e8eaed !important;
+}
+
+html.dark-mode .gm-hovercard-name {
+  color: #e8eaed !important;
+}
+
+html.dark-mode .gm-hovercard-email {
+  color: #9aa0a6 !important;
+}
+
+html.dark-mode .gm-hovercard-btn {
+  background: #252627 !important;
+  border-color: #3c4043 !important;
+  color: #e8eaed !important;
 }
 
 /* ==========================================================================
