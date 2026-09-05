@@ -30,9 +30,9 @@
     $config['layout'] = 'widescreen';
     $config['preview_pane'] = true;
 
-    # Gmail-Style Conversation Threading
-    $config['default_list_mode'] = 'threads';
-    $config['autoexpand_threads'] = 1;
+    # Flat Chronological Message List (Individual Emails)
+    $config['default_list_mode'] = 'list';
+    $config['autoexpand_threads'] = 0;
 
     # Composer & Reply Flow (Top-posting, Signature above quotes)
     $config['reply_mode'] = 1;
