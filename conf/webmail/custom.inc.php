@@ -32,7 +32,7 @@
 
     # Gmail-Style Conversation Threading
     $config['default_list_mode'] = 'threads';
-    $config['autoexpand_threads'] = 2;
+    $config['autoexpand_threads'] = 1;
 
     # Composer & Reply Flow (Top-posting, Signature above quotes)
     $config['reply_mode'] = 1;
