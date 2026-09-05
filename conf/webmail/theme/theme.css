@@ -1,187 +1,327 @@
-/* BillionMail Modern Roundcube Theme - Gmail Style Experience */
+/* ==========================================================================
+   BillionMail Modern Gmail-Style Theme for Roundcube
+   - Clean Google Workspace & Gmail aesthetic
+   - Gmail-Style Thread Conversation View
+   - Collapsible Thread Cards & Circle Avatars
+   - Inline Quick-Reply Box
+   - Modern Typography (Inter / Google Sans)
+   ========================================================================== */
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --bm-font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --bm-primary-color: #1a73e8;
-  --bm-primary-hover: #1557b0;
-  --bm-bg-card: #ffffff;
-  --bm-border-color: #e0e0e0;
-  --bm-pill-bg: #ffffff;
-  --bm-pill-hover: #f1f3f4;
-  --bm-pill-border: #dadce0;
-  --bm-pill-text: #3c4043;
-  --bm-header-bg: rgba(255, 255, 255, 0.85);
+  --bm-font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --gm-blue: #1a73e8;
+  --gm-blue-hover: #1557b0;
+  --gm-blue-light: #c2e7ff;
+  --gm-blue-active: #d3e3fd;
+  --gm-text-primary: #202124;
+  --gm-text-secondary: #5f6368;
+  --gm-text-muted: #80868b;
+  --gm-border: #dadce0;
+  --gm-border-light: #e0e0e0;
+  --gm-bg-app: #f6f8fc;
+  --gm-bg-card: #ffffff;
+  --gm-bg-card-hover: #f1f3f4;
+  --gm-shadow-card: 0 1px 3px rgba(60, 64, 67, 0.08), 0 1px 2px rgba(60, 64, 67, 0.04);
+  --gm-shadow-hover: 0 2px 6px rgba(60, 64, 67, 0.15), 0 1px 3px rgba(60, 64, 67, 0.1);
 }
 
+/* 1. Global Typography & Reset */
 html, body, button, input, textarea, select, .rcm-theme, #layout {
-  font-family: var(--bm-font-family) !important;
+  font-family: var(--bm-font) !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Modern Sleek Login Box */
-.formcontent,
-#login-form,
-.login-form {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(16px) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
-  padding: 24px 28px !important;
-  border: 1px solid rgba(0, 0, 0, 0.06) !important;
-  max-width: 420px !important;
-  margin: 0 auto !important;
+body {
+  background-color: var(--gm-bg-app) !important;
+  color: var(--gm-text-primary) !important;
 }
 
-#login-form .input-group,
-.login-form .input-group {
-  border-radius: 10px !important;
-  overflow: hidden !important;
-  margin-bottom: 14px !important;
-  border: 1px solid #dadce0 !important;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-#login-form .input-group:focus-within,
-.login-form .input-group:focus-within {
-  border-color: var(--bm-primary-color) !important;
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15) !important;
-}
-
-#login-form input[type="text"],
-#login-form input[type="password"],
-.login-form input[type="text"],
-.login-form input[type="password"] {
-  border: none !important;
-  padding: 10px 14px !important;
-  font-size: 14px !important;
-}
-
-#login-form .input-group-prepend .input-group-text,
-.login-form .input-group-prepend .input-group-text {
-  border: none !important;
-  background-color: #f8f9fa !important;
-  color: #5f6368 !important;
-}
-
-#login-form button[type="submit"],
-#rcmloginbtn,
-.login-form button[type="submit"],
-.btn.btn-primary.btn-login {
-  background: linear-gradient(135deg, #1a73e8, #1557b0) !important;
-  border: none !important;
-  border-radius: 10px !important;
-  padding: 12px 24px !important;
-  font-weight: 600 !important;
-  font-size: 14px !important;
-  letter-spacing: 0.5px !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.25) !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  width: 100% !important;
-  cursor: pointer !important;
-}
-
-#login-form button[type="submit"]:hover,
-#rcmloginbtn:hover,
-.login-form button[type="submit"]:hover {
-  background: linear-gradient(135deg, #1557b0, #0d47a1) !important;
-  box-shadow: 0 6px 18px rgba(26, 115, 232, 0.35) !important;
-  transform: translateY(-1px) !important;
-}
-
-/* Glassmorphic Header & Toolbar */
+/* 2. Top Header & App Bar */
 #layout-menu,
 .header,
 header.header,
-.toolbar,
-.header > .toolbar {
+.toolbar {
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px) !important;
-  background: var(--bm-header-bg) !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid var(--gm-border-light) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
 }
 
-/* Clean 3-Column Layout Styling */
-#layout-sidebar,
-#layout-list,
-#layout-content {
-  border-right: 1px solid var(--bm-border-color) !important;
-  transition: background-color 0.2s ease;
+/* 3. Left Navigation & Sidebar */
+#layout-sidebar {
+  background: var(--gm-bg-app) !important;
+  border-right: 1px solid var(--gm-border-light) !important;
 }
 
-/* Mailbox Item Highlights */
-.messagelist tr.selected td,
-.messagelist tr:hover td,
-.records-table tr.selected td,
-.records-table tr:hover td {
-  background-color: #f2f6fc !important;
-}
-
-.messagelist tr.unread td {
-  font-weight: 600 !important;
-}
-
-/* Pill-Shaped Gmail Send Button */
-button.btn-primary.send,
-button.send,
-a.button.send,
-.mainaction.send,
-#rcmbtn100,
-.btn-primary.btn-send {
-  background: var(--bm-primary-color) !important;
-  background-color: var(--bm-primary-color) !important;
-  border: none !important;
-  border-radius: 24px !important;
-  color: #ffffff !important;
+/* Gmail-Style Floating Compose Button */
+#layout-menu .compose,
+.button.compose,
+a.button.compose {
+  background: var(--gm-blue-light) !important;
+  color: #001d35 !important;
+  border-radius: 16px !important;
   font-weight: 600 !important;
   font-size: 14px !important;
-  padding: 8px 26px !important;
-  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3), 0 2px 6px rgba(26, 115, 232, 0.2) !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  cursor: pointer !important;
+  padding: 12px 20px !important;
+  margin: 12px auto !important;
   display: inline-flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 10px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-button.btn-primary.send:hover,
-button.send:hover,
-a.button.send:hover,
-.mainaction.send:hover {
-  background: var(--bm-primary-hover) !important;
-  background-color: var(--bm-primary-hover) !important;
-  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.4), 0 4px 12px rgba(26, 115, 232, 0.3) !important;
+#layout-menu .compose:hover,
+.button.compose:hover {
+  background: #b3dbf5 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
   transform: translateY(-1px);
 }
 
-/* Recipient Chips & Input Fields */
-.tokenfield,
-.rcm-recipient,
-.recipient-input,
-.compose-headers input[type="text"] {
-  border-radius: 12px !important;
-  border: 1px solid #dadce0 !important;
-  padding: 6px 12px !important;
-  transition: border-color 0.2s, box-shadow 0.2s;
+/* Folder List Pills (Inbox, Sent, Drafts, Trash) */
+.treelist li a {
+  border-radius: 0 20px 20px 0 !important;
+  padding: 8px 16px !important;
+  margin-right: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--gm-text-primary) !important;
+  transition: background 0.15s ease !important;
 }
 
-.tokenfield:focus-within,
-.compose-headers input[type="text"]:focus {
-  border-color: var(--bm-primary-color) !important;
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15) !important;
+.treelist li a:hover {
+  background: #eaebef !important;
 }
 
-/* Gmail-Style Bottom Action Pills */
+.treelist li.selected a {
+  background: var(--gm-blue-active) !important;
+  color: #041e49 !important;
+  font-weight: 700 !important;
+}
+
+/* 4. Message List Pane */
+#layout-list {
+  background: #ffffff !important;
+  border-right: 1px solid var(--gm-border-light) !important;
+}
+
+.messagelist tr td {
+  border-bottom: 1px solid #f1f3f4 !important;
+  padding: 10px 12px !important;
+  font-size: 13.5px !important;
+  transition: background 0.15s ease;
+}
+
+.messagelist tr:hover td {
+  background-color: #f7f9fc !important;
+  box-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0;
+}
+
+.messagelist tr.selected td {
+  background-color: #e8f0fe !important;
+}
+
+.messagelist tr.unread td {
+  font-weight: 700 !important;
+  color: #000000 !important;
+}
+
+/* 5. Message View / Reading Pane */
+#layout-content {
+  background: #ffffff !important;
+}
+
+.frame-content {
+  padding: 16px 28px !important;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+/* Hide default ugly table headers when custom Gmail view is active */
+.gm-view-active #message-header .header {
+  display: none !important;
+}
+
+/* Subject line styled like Gmail */
+.gm-subject-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gm-border-light);
+}
+
+.gm-subject-title {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--gm-text-primary);
+  letter-spacing: -0.3px;
+  margin: 0;
+  flex: 1;
+}
+
+.gm-inbox-badge {
+  background: #e2e3e5;
+  color: #444746;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.2px;
+}
+
+/* 6. Gmail-Style Thread Cards */
+.gm-thread-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.gm-thread-card {
+  background: var(--gm-bg-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--gm-shadow-card);
+}
+
+/* Collapsed Thread Card */
+.gm-thread-card.gm-collapsed {
+  cursor: pointer;
+  background: #fbfcfe;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gm-thread-card.gm-collapsed:hover {
+  background: var(--gm-bg-card-hover);
+  box-shadow: var(--gm-shadow-hover);
+  border-color: #c4c7c5;
+}
+
+.gm-thread-card.gm-collapsed .gm-collapsed-snippet {
+  color: var(--gm-text-secondary);
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.gm-thread-card.gm-collapsed .gm-collapsed-date {
+  color: var(--gm-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Expanded Thread Card */
+.gm-thread-card.gm-expanded {
+  padding: 20px;
+}
+
+.gm-thread-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.gm-author-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Circular Vibrant Initial Avatars */
+.gm-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  user-select: none;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.gm-author-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gm-author-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--gm-text-primary);
+}
+
+.gm-recipient-chip {
+  font-size: 12px;
+  color: var(--gm-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--gm-text-secondary);
+  font-size: 12px;
+}
+
+.gm-header-right svg {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  fill: currentColor;
+  transition: color 0.15s;
+}
+
+.gm-header-right svg:hover {
+  color: var(--gm-text-primary);
+}
+
+/* Message Content Area */
+.gm-message-body {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--gm-text-primary);
+  word-break: break-word;
+  white-space: pre-wrap;
+  padding-left: 52px;
+}
+
+.gm-message-body blockquote {
+  border-left: 2px solid #dadce0;
+  padding-left: 12px;
+  margin: 12px 0;
+  color: var(--gm-text-secondary);
+}
+
+/* 7. Bottom Action Pills (Reply, Forward) */
 .bm-action-pills-container {
-  margin-top: 24px;
-  padding: 20px 0 12px 0;
-  border-top: 1px solid var(--bm-border-color);
   display: flex;
   gap: 12px;
-  align-items: center;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--gm-border-light);
   flex-wrap: wrap;
 }
 
@@ -191,16 +331,15 @@ a.button.send:hover,
   gap: 8px;
   padding: 8px 22px;
   border-radius: 20px;
-  border: 1px solid var(--bm-pill-border);
-  background: var(--bm-pill-bg);
-  color: var(--bm-pill-text);
+  border: 1px solid var(--gm-border);
+  background: #ffffff;
+  color: var(--gm-text-primary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
-  text-decoration: none;
 }
 
 .bm-action-pill svg {
@@ -210,19 +349,162 @@ a.button.send:hover,
 }
 
 .bm-action-pill:hover {
-  background: var(--bm-pill-hover);
+  background: var(--gm-bg-card-hover);
   border-color: #c4c7c5;
-  color: #202124;
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2);
+  box-shadow: var(--gm-shadow-hover);
   transform: translateY(-1px);
 }
 
-.bm-action-pill:active {
-  transform: translateY(0);
-  background: #e8eaed;
+/* 8. Gmail-Style Inline Quick-Reply Box */
+.gm-inline-reply-box {
+  margin-top: 20px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(60, 64, 67, 0.1);
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Gmail-Style ••• Trimmed Content Toggle */
+.gm-inline-header {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #f1f3f4;
+  background: #fafbfc;
+}
+
+.gm-inline-header .gm-reply-label {
+  font-size: 13px;
+  color: var(--gm-text-secondary);
+  font-weight: 500;
+}
+
+.gm-inline-header .gm-reply-to {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gm-text-primary);
+  background: #e8f0fe;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.gm-inline-popout {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gm-text-secondary);
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.gm-inline-popout:hover {
+  background: #e8eaed;
+  color: var(--gm-text-primary);
+}
+
+.gm-reply-textarea {
+  width: 100%;
+  min-height: 110px;
+  border: none;
+  outline: none;
+  padding: 16px 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: inherit;
+  color: var(--gm-text-primary);
+  resize: vertical;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.gm-inline-footer {
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f1f3f4;
+  background: #fafbfc;
+}
+
+.gm-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gm-send-pill-btn {
+  background: var(--gm-blue) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 20px !important;
+  padding: 9px 26px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.3), 0 2px 6px rgba(26, 115, 232, 0.2) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.gm-send-pill-btn:hover {
+  background: var(--gm-blue-hover) !important;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.gm-send-pill-btn:disabled {
+  background: #bdc1c6 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.gm-discard-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gm-text-secondary);
+  padding: 8px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gm-discard-btn:hover {
+  background: #e8eaed;
+  color: #d93025;
+}
+
+.gm-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  background: #323232;
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  animation: gmFadeIn 0.3s ease;
+}
+
+@keyframes gmFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 9. ••• Trimmed Content Toggle */
 .bm-trimmed-toggle {
   display: inline-flex;
   align-items: center;
@@ -235,7 +517,7 @@ a.button.send:hover,
   font-weight: bold;
   letter-spacing: 2px;
   cursor: pointer;
-  margin: 14px 0 8px 0;
+  margin: 12px 0 8px 52px;
   border: 1px solid transparent;
   transition: all 0.2s ease;
   user-select: none;
@@ -244,65 +526,98 @@ a.button.send:hover,
 .bm-trimmed-toggle:hover {
   background: #dadce0;
   color: #202124;
-  border-color: #bdc1c6;
 }
 
 .bm-trimmed-content.is-collapsed {
   display: none !important;
 }
 
-/* Keyboard Shortcut Hint */
-.bm-shortcut-hint {
-  font-size: 11px;
-  color: #70757a;
-  margin-left: 8px;
-}
-
-/* Adaptive Dark Mode */
-@media (prefers-color-scheme: dark) {
+/* 10. Adaptive Google Dark Mode */
+@media (prefers-color-scheme: dark), (data-theme="dark") {
   :root {
-    --bm-bg-card: #1e1e1e;
-    --bm-border-color: #3c4043;
-    --bm-pill-bg: #2d2e30;
-    --bm-pill-hover: #38393c;
-    --bm-pill-border: #4a4d51;
-    --bm-pill-text: #e8eaed;
-    --bm-header-bg: rgba(30, 30, 30, 0.85);
+    --gm-text-primary: #e8eaed;
+    --gm-text-secondary: #9aa0a6;
+    --gm-text-muted: #80868b;
+    --gm-border: #3c4043;
+    --gm-border-light: #2d2e30;
+    --gm-bg-app: #1f1f1f;
+    --gm-bg-card: #2d2e30;
+    --gm-bg-card-hover: #38393c;
+    --gm-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
-  .messagelist tr.selected td,
-  .messagelist tr:hover td,
-  .records-table tr.selected td,
-  .records-table tr:hover td {
-    background-color: #283548 !important;
+  body, #layout, #layout-content, #layout-list, #layout-sidebar {
+    background-color: #1f1f1f !important;
+    color: #e8eaed !important;
+  }
+
+  #layout-menu, .header, header.header, .toolbar {
+    background: rgba(31, 31, 31, 0.95) !important;
+    border-bottom-color: #3c4043 !important;
+  }
+
+  .gm-thread-card.gm-collapsed {
+    background: #28292a !important;
+    border-color: #3c4043 !important;
+  }
+
+  .gm-thread-card.gm-collapsed:hover {
+    background: #333538 !important;
+  }
+
+  .bm-action-pill {
+    background: #2d2e30 !important;
+    color: #e8eaed !important;
+    border-color: #4a4d51 !important;
+  }
+
+  .bm-action-pill:hover {
+    background: #38393c !important;
+    border-color: #5f6368 !important;
+  }
+
+  .gm-inline-reply-box {
+    background: #2d2e30 !important;
+    border-color: #3c4043 !important;
+  }
+
+  .gm-inline-header, .gm-inline-footer {
+    background: #242526 !important;
+    border-color: #3c4043 !important;
+  }
+
+  .gm-reply-textarea {
+    color: #e8eaed !important;
+  }
+
+  .gm-inbox-badge {
+    background: #3c4043 !important;
+    color: #c4c7c5 !important;
   }
 
   .bm-trimmed-toggle {
-    background: #3c4043;
-    color: #9aa0a6;
+    background: #3c4043 !important;
+    color: #9aa0a6 !important;
   }
 
-  .bm-trimmed-toggle:hover {
-    background: #4a4d51;
-    color: #e8eaed;
+  .messagelist tr td {
+    border-bottom-color: #2d2e30 !important;
   }
 
-  .tokenfield,
-  .rcm-recipient,
-  .recipient-input,
-  .compose-headers input[type="text"] {
-    background-color: #282828 !important;
-    border-color: #3c4043 !important;
+  .messagelist tr:hover td {
+    background-color: #283548 !important;
+  }
+
+  .messagelist tr.selected td {
+    background-color: #1a3250 !important;
+  }
+
+  .treelist li a {
     color: #e8eaed !important;
   }
-}
 
-.dark-mode {
-  --bm-bg-card: #1e1e1e;
-  --bm-border-color: #3c4043;
-  --bm-pill-bg: #2d2e30;
-  --bm-pill-hover: #38393c;
-  --bm-pill-border: #4a4d51;
-  --bm-pill-text: #e8eaed;
-  --bm-header-bg: rgba(30, 30, 30, 0.85);
+  .treelist li.selected a {
+    background: #004a77 !important;
+    color: #c2e7ff !important;
+  }
 }

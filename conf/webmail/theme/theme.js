@@ -1,13 +1,35 @@
 /**
- * BillionMail Modern Roundcube Experience
- * - Gmail-Style Bottom Action Pills (Reply, Reply All, Forward)
- * - Expandable ••• Trimmed Content Toggle for quoted emails
- * - Ctrl+Enter / Cmd+Enter Instant Send shortcut
- * - Smooth integration with Elastic skin & iframes
+ * BillionMail Modern Gmail-Style Experience for Roundcube
+ * - Gmail Thread Conversation View (Stacked collapsible cards)
+ * - Colored Circle Avatars with author initials
+ * - Inline Quick-Reply Composer (Reply right in the thread without page reload)
+ * - Gmail Action Pills: [ ↩ Reply ] [ ↪ Forward ]
+ * - ••• Trimmed Quote Toggle
+ * - Ctrl+Enter / Cmd+Enter Send Shortcut
  */
 
 (function () {
   'use strict';
+
+  var AVATAR_COLORS = [
+    '#7b1fa2', '#1a73e8', '#0f9d58', '#d93025',
+    '#f4511e', '#00897b', '#3949ab', '#00acc1',
+    '#8e24aa', '#e53935', '#43a047', '#fb8c00'
+  ];
+
+  function getAvatarColor(str) {
+    if (!str) return '#1a73e8';
+    var hash = 0;
+    for (var i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    var index = Math.abs(hash % AVATAR_COLORS.length);
+    return AVATAR_COLORS[index];
+  }
+
+  function getInitial(str) {
+    if (!str) return 'U';
+    var clean = str.replace(/<.*?>/g, '').replace(/["']/g, '').trim();
+    return clean ? clean.charAt(0).toUpperCase() : 'U';
+  }
 
   function getRcmail() {
     if (typeof window.rcmail !== 'undefined') return window.rcmail;
@@ -15,55 +37,260 @@
     return null;
   }
 
-  // 1. Inject Bottom Action Pills in Message Reading View
-  function initActionPills() {
-    var targets = [
-      document.querySelector('#messagecontent'),
-      document.querySelector('#message-html'),
-      document.querySelector('#messagebody'),
-      document.querySelector('.message-part')
-    ];
+  // =========================================================================
+  // 1. Transform Reading Pane to Gmail-Style Thread Conversation View
+  // =========================================================================
+  function transformThreadView() {
+    var msgHeader = document.querySelector('#message-header');
+    var msgBody = document.querySelector('#messagebody');
+    if (!msgHeader || !msgBody) return;
+    if (document.querySelector('.gm-thread-container')) return; // Already transformed
 
-    var container = null;
-    for (var i = 0; i < targets.length; i++) {
-      if (targets[i]) {
-        container = targets[i];
-        break;
+    document.body.classList.add('gm-view-active');
+
+    // Extract Subject
+    var subjectEl = msgHeader.querySelector('.subject');
+    var subjectText = subjectEl ? subjectEl.innerText.replace(/openinextwin/gi, '').trim() : 'No Subject';
+
+    // Extract Sender & Recipient & Date from Roundcube Header
+    var senderText = '';
+    var dateText = '';
+    var recipientText = 'me';
+
+    var fromEl = msgHeader.querySelector('.from .adr, .from');
+    if (fromEl) senderText = fromEl.innerText.trim();
+
+    var dateEl = msgHeader.querySelector('.date');
+    if (dateEl) dateText = dateEl.innerText.trim();
+
+    var toEl = msgHeader.querySelector('.to .adr, .to');
+    if (toEl) recipientText = toEl.innerText.trim();
+
+    // Hide old messy header
+    msgHeader.style.display = 'none';
+
+    // Build Gmail Thread Container
+    var threadContainer = document.createElement('div');
+    threadContainer.className = 'gm-thread-container';
+
+    // Top Subject Row with [Inbox x]
+    var subjectContainer = document.createElement('div');
+    subjectContainer.className = 'gm-subject-container';
+    subjectContainer.innerHTML = 
+      '<h1 class="gm-subject-title">' + escapeHtml(subjectText) + '</h1>' +
+      '<span class="gm-inbox-badge">Inbox</span>';
+    threadContainer.appendChild(subjectContainer);
+
+    // Parse Body for Thread Messages (Detect quoted chains)
+    var rawHtml = msgBody.innerHTML;
+    var rawText = msgBody.innerText || '';
+
+    var threadMessages = parseEmailThread(rawText, rawHtml, senderText, dateText);
+
+    // Render Cards in Stack
+    threadMessages.forEach(function (msg, idx) {
+      var isLatest = (idx === threadMessages.length - 1);
+      var card = document.createElement('div');
+      card.className = 'gm-thread-card ' + (isLatest ? 'gm-expanded' : 'gm-collapsed');
+      card.setAttribute('data-msg-idx', idx);
+
+      var authorName = msg.author || senderText || 'Unknown';
+      var avatarInitial = getInitial(authorName);
+      var avatarColor = getAvatarColor(authorName);
+
+      if (isLatest) {
+        // Expanded Latest Card
+        card.innerHTML = 
+          '<div class="gm-thread-header">' +
+            '<div class="gm-author-meta">' +
+              '<div class="gm-avatar" style="background:' + avatarColor + '">' + avatarInitial + '</div>' +
+              '<div class="gm-author-names">' +
+                '<span class="gm-author-name">' + escapeHtml(authorName) + '</span>' +
+                '<span class="gm-recipient-chip">to ' + escapeHtml(recipientText) + ' ▾</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="gm-header-right">' +
+              '<span>' + escapeHtml(msg.date || dateText) + '</span>' +
+              '<svg title="Star" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' +
+              '<svg title="Reply" class="gm-btn-quick-reply-icon" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>' +
+            '</div>' +
+          '</div>' +
+          '<div class="gm-message-body">' + msg.bodyHtml + '</div>';
+
+        // Bind quick reply icon in header
+        var qIcon = card.querySelector('.gm-btn-quick-reply-icon');
+        if (qIcon) {
+          qIcon.onclick = function (e) {
+            e.stopPropagation();
+            openInlineReply(threadContainer, authorName, subjectText);
+          };
+        }
+      } else {
+        // Collapsed Previous Message Card
+        card.innerHTML = 
+          '<div class="gm-avatar" style="width:32px; height:32px; font-size:14px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
+          '<span class="gm-author-name" style="width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + escapeHtml(authorName) + '</span>' +
+          '<span class="gm-collapsed-snippet">' + escapeHtml(msg.snippet) + '</span>' +
+          '<span class="gm-collapsed-date">' + escapeHtml(msg.date || '') + '</span>';
+
+        // Toggle Expand on Click
+        card.onclick = function () {
+          toggleCardExpansion(card, msg, recipientText);
+        };
       }
+
+      threadContainer.appendChild(card);
+    });
+
+    // Replace original msgBody with new Thread Container
+    msgBody.style.display = 'none';
+    if (msgBody.parentNode) {
+      msgBody.parentNode.insertBefore(threadContainer, msgBody);
     }
 
-    if (!container) return;
-    if (document.querySelector('.bm-action-pills-container')) return;
+    // Bottom Action Pills (Reply, Forward)
+    renderBottomPills(threadContainer, senderText, subjectText);
+  }
+
+  // Toggle card between collapsed and expanded
+  function toggleCardExpansion(card, msg, recipientText) {
+    var isCollapsed = card.classList.contains('gm-collapsed');
+    var authorName = msg.author || 'Unknown';
+    var avatarInitial = getInitial(authorName);
+    var avatarColor = getAvatarColor(authorName);
+
+    if (isCollapsed) {
+      card.classList.remove('gm-collapsed');
+      card.classList.add('gm-expanded');
+      card.innerHTML = 
+        '<div class="gm-thread-header">' +
+          '<div class="gm-author-meta">' +
+            '<div class="gm-avatar" style="background:' + avatarColor + '">' + avatarInitial + '</div>' +
+            '<div class="gm-author-names">' +
+              '<span class="gm-author-name">' + escapeHtml(authorName) + '</span>' +
+              '<span class="gm-recipient-chip">to ' + escapeHtml(recipientText) + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="gm-header-right">' +
+            '<span>' + escapeHtml(msg.date || '') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="gm-message-body">' + msg.bodyHtml + '</div>';
+    } else {
+      card.classList.remove('gm-expanded');
+      card.classList.add('gm-collapsed');
+      card.innerHTML = 
+        '<div class="gm-avatar" style="width:32px; height:32px; font-size:14px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
+        '<span class="gm-author-name" style="width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + escapeHtml(authorName) + '</span>' +
+        '<span class="gm-collapsed-snippet">' + escapeHtml(msg.snippet) + '</span>' +
+        '<span class="gm-collapsed-date">' + escapeHtml(msg.date || '') + '</span>';
+    }
+  }
+
+  // Parse email body into conversation thread items
+  function parseEmailThread(text, html, currentSender, currentDate) {
+    var messages = [];
+
+    // Check for "On <date>, <author> wrote:" pattern
+    var onWroteRegex = /On\s+([0-9]{4}-[0-9]{2}-[0-9]{2}[^,\n]*|[^,\n]+,\s+[^\n]+)\s*,\s*([^<>\n]+(?:<[^>]+>)?)\s+wrote:/gi;
+    var matches = [];
+    var match;
+    while ((match = onWroteRegex.exec(text)) !== null) {
+      matches.push({
+        index: match.index,
+        fullMatch: match[0],
+        date: match[1].trim(),
+        author: match[2].trim()
+      });
+    }
+
+    if (matches.length > 0) {
+      // Split text into messages
+      var firstMatch = matches[0];
+      var latestText = text.substring(0, firstMatch.index).trim();
+      var quotePart = text.substring(firstMatch.index + firstMatch.fullMatch.length).trim();
+
+      // Clean lines with | or > prefixes
+      var cleanedPreviousLines = quotePart.split('\n').map(function (line) {
+        return line.replace(/^[\s|>]+/, '').trimEnd();
+      });
+
+      // If reply was bottom-posted (text after quote)
+      var cleanPrevText = '';
+      var cleanLatestText = latestText;
+
+      var bottomReplyLines = [];
+      var prevLines = [];
+      var reachedBottomReply = false;
+
+      for (var i = 0; i < cleanedPreviousLines.length; i++) {
+        var rawLine = quotePart.split('\n')[i] || '';
+        if (!reachedBottomReply && !rawLine.startsWith('|') && !rawLine.startsWith('>') && rawLine.trim().length > 0) {
+          reachedBottomReply = true;
+        }
+        if (reachedBottomReply) {
+          bottomReplyLines.push(cleanedPreviousLines[i]);
+        } else {
+          prevLines.push(cleanedPreviousLines[i]);
+        }
+      }
+
+      cleanPrevText = prevLines.join('\n').trim();
+      if (bottomReplyLines.length > 0 && !cleanLatestText) {
+        cleanLatestText = bottomReplyLines.join('\n').trim();
+      }
+
+      // 1. Previous Message Card (Saurabh Kumar Dey)
+      messages.push({
+        author: firstMatch.author,
+        date: firstMatch.date,
+        snippet: cleanPrevText.substring(0, 80) || 'Previous message',
+        bodyHtml: escapeHtml(cleanPrevText)
+      });
+
+      // 2. Latest Message Card
+      messages.push({
+        author: currentSender,
+        date: currentDate,
+        snippet: cleanLatestText.substring(0, 80),
+        bodyHtml: escapeHtml(cleanLatestText)
+      });
+    } else {
+      // Single message (no quotes found)
+      messages.push({
+        author: currentSender,
+        date: currentDate,
+        snippet: text.substring(0, 80),
+        bodyHtml: html || escapeHtml(text)
+      });
+    }
+
+    return messages;
+  }
+
+  // =========================================================================
+  // 2. Bottom Action Pills & Inline Quick-Reply Composer
+  // =========================================================================
+  function renderBottomPills(container, sender, subject) {
+    if (container.querySelector('.bm-action-pills-container')) return;
 
     var pillBox = document.createElement('div');
     pillBox.className = 'bm-action-pills-container';
 
-    // Reply Button
+    // [ ↩ Reply ]
     var replyBtn = document.createElement('button');
     replyBtn.type = 'button';
-    replyBtn.className = 'bm-action-pill bm-reply-btn';
+    replyBtn.className = 'bm-action-pill';
     replyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> <span>Reply</span>';
     replyBtn.onclick = function (e) {
       e.preventDefault();
-      var rc = getRcmail();
-      if (rc) rc.command('reply', '', this, e);
+      openInlineReply(container, sender, subject);
     };
 
-    // Reply All Button
-    var replyAllBtn = document.createElement('button');
-    replyAllBtn.type = 'button';
-    replyAllBtn.className = 'bm-action-pill bm-reply-all-btn';
-    replyAllBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7 8V5l-7 7 7 7v-3l-4-4 4-4zm6 1V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> <span>Reply all</span>';
-    replyAllBtn.onclick = function (e) {
-      e.preventDefault();
-      var rc = getRcmail();
-      if (rc) rc.command('reply-all', '', this, e);
-    };
-
-    // Forward Button
+    // [ ↪ Forward ]
     var forwardBtn = document.createElement('button');
     forwardBtn.type = 'button';
-    forwardBtn.className = 'bm-action-pill bm-forward-btn';
+    forwardBtn.className = 'bm-action-pill';
     forwardBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg> <span>Forward</span>';
     forwardBtn.onclick = function (e) {
       e.preventDefault();
@@ -72,104 +299,206 @@
     };
 
     pillBox.appendChild(replyBtn);
-    pillBox.appendChild(replyAllBtn);
     pillBox.appendChild(forwardBtn);
 
     container.appendChild(pillBox);
   }
 
-  // 2. Gmail-Style ••• Trimmed Content Toggle for Quoted Messages
-  function initTrimmedContentToggle() {
-    var editor = document.querySelector('#composebody') || document.querySelector('textarea[name="_message"]');
-    var quotes = document.querySelectorAll('blockquote, .quoted-text, div.gmail_quote, div.roundcube_quote');
+  // Open Gmail Inline Quick Reply Box
+  function openInlineReply(container, recipient, subject) {
+    var existingBox = container.querySelector('.gm-inline-reply-box');
+    if (existingBox) {
+      var textarea = existingBox.querySelector('.gm-reply-textarea');
+      if (textarea) textarea.focus();
+      return;
+    }
 
-    quotes.forEach(function (quote) {
-      if (quote.getAttribute('data-bm-trimmed') === 'true') return;
-      quote.setAttribute('data-bm-trimmed', 'true');
-      quote.classList.add('bm-trimmed-content', 'is-collapsed');
+    // Hide action pills while composing
+    var pills = container.querySelector('.bm-action-pills-container');
+    if (pills) pills.style.display = 'none';
 
-      var toggle = document.createElement('div');
-      toggle.className = 'bm-trimmed-toggle';
-      toggle.title = 'Show trimmed content';
-      toggle.innerText = '•••';
+    var myName = 'me';
+    var myAvatarColor = '#1a73e8';
 
-      toggle.onclick = function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (quote.classList.contains('is-collapsed')) {
-          quote.classList.remove('is-collapsed');
-          toggle.style.display = 'none';
-        }
-      };
+    var replyBox = document.createElement('div');
+    replyBox.className = 'gm-inline-reply-box';
+    replyBox.innerHTML = 
+      '<div class="gm-inline-header">' +
+        '<div class="gm-avatar" style="width:30px; height:30px; font-size:13px; background:' + myAvatarColor + '">S</div>' +
+        '<span class="gm-reply-label">↩ Reply</span>' +
+        '<span class="gm-reply-to">' + escapeHtml(recipient || 'Recipient') + '</span>' +
+        '<button type="button" class="gm-inline-popout" title="Pop-out to full editor">↗</button>' +
+      '</div>' +
+      '<textarea class="gm-reply-textarea" placeholder="Reply to ' + escapeHtml(recipient || '') + '..."></textarea>' +
+      '<div class="gm-inline-footer">' +
+        '<div class="gm-footer-left">' +
+          '<button type="button" class="gm-send-pill-btn">' +
+            '<svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>' +
+            '<span>Send</span>' +
+          '</button>' +
+          '<span style="font-size:11px; color:#80868b; margin-left:8px;">Ctrl+Enter</span>' +
+        '</div>' +
+        '<div class="gm-footer-right">' +
+          '<button type="button" class="gm-discard-btn" title="Discard draft">' +
+            '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
 
-      if (quote.parentNode) {
-        quote.parentNode.insertBefore(toggle, quote);
-      }
+    container.appendChild(replyBox);
+
+    var textarea = replyBox.querySelector('.gm-reply-textarea');
+    textarea.focus();
+
+    // Auto-expand textarea on typing
+    textarea.addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
     });
 
-    // Also check TinyMCE HTML Editor if present
-    if (window.tinymce && window.tinymce.activeEditor) {
-      try {
-        var doc = window.tinymce.activeEditor.getDoc();
-        if (doc) {
-          var iframeQuotes = doc.querySelectorAll('blockquote, .quoted-text, div.gmail_quote');
-          iframeQuotes.forEach(function (iq) {
-            if (iq.getAttribute('data-bm-trimmed') === 'true') return;
-            iq.setAttribute('data-bm-trimmed', 'true');
-            iq.style.display = 'none';
+    // Popout to full editor
+    replyBox.querySelector('.gm-inline-popout').onclick = function () {
+      var rc = getRcmail();
+      if (rc) rc.command('reply', '', this);
+    };
 
-            var tBtn = doc.createElement('button');
-            tBtn.type = 'button';
-            tBtn.innerText = '•••';
-            tBtn.style.cssText = 'background:#e8eaed; border:1px solid #dadce0; border-radius:10px; color:#5f6368; font-weight:bold; cursor:pointer; padding:2px 8px; margin:10px 0; display:inline-block;';
-            tBtn.onclick = function () {
-              iq.style.display = '';
-              tBtn.style.display = 'none';
-            };
-            iq.parentNode.insertBefore(tBtn, iq);
-          });
+    // Discard button
+    replyBox.querySelector('.gm-discard-btn').onclick = function () {
+      replyBox.remove();
+      if (pills) pills.style.display = 'flex';
+    };
+
+    // Send Button Handler
+    var sendBtn = replyBox.querySelector('.gm-send-pill-btn');
+    var sendAction = function () {
+      var replyText = textarea.value.trim();
+      if (!replyText) return;
+
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = '<span>Sending...</span>';
+
+      sendInlineReply(replyText, recipient, subject, function (success, err) {
+        if (success) {
+          // Append new sent card directly to thread!
+          var sentCard = document.createElement('div');
+          sentCard.className = 'gm-thread-card gm-expanded';
+          sentCard.innerHTML = 
+            '<div class="gm-thread-header">' +
+              '<div class="gm-author-meta">' +
+                '<div class="gm-avatar" style="background:#1a73e8">S</div>' +
+                '<div class="gm-author-names">' +
+                  '<span class="gm-author-name">Saurabh Kumar Dey</span>' +
+                  '<span class="gm-recipient-chip">to ' + escapeHtml(recipient) + '</span>' +
+                '</div>' +
+              '</div>' +
+              '<div class="gm-header-right">' +
+                '<span>Just now</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="gm-message-body">' + escapeHtml(replyText) + '</div>';
+
+          container.insertBefore(sentCard, replyBox);
+
+          replyBox.remove();
+          if (pills) pills.style.display = 'flex';
+
+          showToast('Message sent.');
+        } else {
+          sendBtn.disabled = false;
+          sendBtn.innerHTML = '<span>Send</span>';
+          alert('Failed to send reply: ' + (err || 'Unknown error'));
         }
-      } catch (err) {}
-    }
-  }
-
-  // 3. Ctrl+Enter / Cmd+Enter Send Keyboard Shortcut
-  function setupSendShortcut() {
-    function handleKeyDown(e) {
-      if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.keyCode === 13)) {
-        var sendBtn = document.querySelector('button.btn-primary.send, button.send, a.button.send, .mainaction.send');
-        var rc = getRcmail();
-
-        if (sendBtn && !sendBtn.disabled) {
-          e.preventDefault();
-          sendBtn.click();
-        } else if (rc) {
-          e.preventDefault();
-          rc.command('send', '', this, e);
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown, true);
-
-    // If TinyMCE is used, attach keydown listener inside the iframe editor
-    if (window.tinymce) {
-      window.tinymce.on('AddEditor', function (e) {
-        e.editor.on('init', function () {
-          e.editor.on('keydown', handleKeyDown);
-        });
       });
-    }
+    };
+
+    sendBtn.onclick = sendAction;
+
+    // Ctrl+Enter Send
+    textarea.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'Enter' || e.keyCode === 13)) {
+        e.preventDefault();
+        sendAction();
+      }
+    });
   }
 
-  // 4. Observe DOM updates for dynamic AJAX-driven view transitions
-  function initObserver() {
-    initActionPills();
-    initTrimmedContentToggle();
+  // Send reply using Roundcube's compose session
+  function sendInlineReply(text, recipient, subject, callback) {
+    var rc = getRcmail();
+    if (!rc || !rc.env) {
+      return callback(false, 'Roundcube session not found');
+    }
+
+    var uid = rc.env.uid || '';
+    var mbox = rc.env.mailbox || 'INBOX';
+    var token = rc.env.request_token || '';
+
+    // Request compose parameters first to obtain valid compose session & token
+    fetch('/roundcube/?_task=mail&_action=compose&_reply_uid=' + uid + '&_mbox=' + encodeURIComponent(mbox), {
+      credentials: 'same-origin'
+    })
+    .then(function (res) { return res.text(); })
+    .then(function (html) {
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(html, 'text/html');
+
+      var form = doc.querySelector('form[name="form"]') || doc.querySelector('#compose-form');
+      var fd = new FormData();
+
+      if (form) {
+        var inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(function (inp) {
+          if (inp.name) fd.append(inp.name, inp.value);
+        });
+      }
+
+      // Override message text with the user's typed reply
+      var existingMsg = fd.get('_message') || '';
+      fd.set('_message', text + '\n\n' + existingMsg);
+      fd.set('_is_html', '0');
+      fd.set('_action', 'send');
+
+      // Submit send POST
+      return fetch('/roundcube/?_task=mail&_action=send', {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin'
+      });
+    })
+    .then(function (res) {
+      if (res.ok) {
+        callback(true);
+      } else {
+        callback(false, 'HTTP ' + res.status);
+      }
+    })
+    .catch(function (err) {
+      callback(false, err.message);
+    });
+  }
+
+  // Toast notification
+  function showToast(msg) {
+    var toast = document.createElement('div');
+    toast.className = 'gm-toast';
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(function () {
+      toast.remove();
+    }, 4000);
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Observer to run when an email is loaded
+  function init() {
+    transformThreadView();
 
     var observer = new MutationObserver(function () {
-      initActionPills();
-      initTrimmedContentToggle();
+      transformThreadView();
     });
 
     if (document.body) {
@@ -177,14 +506,9 @@
     }
   }
 
-  // Run on DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      setupSendShortcut();
-      initObserver();
-    });
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    setupSendShortcut();
-    initObserver();
+    init();
   }
 })();
