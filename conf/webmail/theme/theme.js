@@ -3,11 +3,13 @@
  * - Multi-Message Gmail Thread Conversation (Recursive nested quote & text parser)
  * - Strict Chronological Sorting (Earliest top -> Latest bottom)
  * - Cross-Folder Persistent Thread Sync (Unifies INBOX message and Sent replies)
- * - Circular Colored Avatars with author initials
- * - Inline Quick-Reply Composer (Reply right in the thread without page reload)
- * - Gmail Action Pills: [ ↩ Reply ] [ ↪ Forward ]
- * - Full Compose Form Interceptor (Saves replies sent from compose screen)
- * - Auto-Refresh Mailbox Interval
+ * - Circular Colored Avatars with Google-Style Sender Profile Hovercards
+ * - Visual Attachment Chips & Previews in Thread Cards
+ * - Inline Quick-Reply Composer with File Attachments (Drag & Drop, Multi-file)
+ * - Multi-Recipient "Reply All" Action Pill
+ * - Automatic Signature Insertion in replies
+ * - Gmail Power-User Single-Key Shortcuts (r, a, f, j, k, e, #, /, Esc)
+ * - Compose Form Interceptor & Background Auto-Refresh
  * - Ctrl+Enter / Cmd+Enter Send Shortcut
  */
 
@@ -32,6 +34,14 @@
     if (!str) return 'U';
     var clean = str.replace(/<.*?>/g, '').replace(/["']/g, '').trim();
     return clean ? clean.charAt(0).toUpperCase() : 'U';
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    var k = 1024;
+    var sizes = ['B', 'KB', 'MB', 'GB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
 
   function getRcmail() {
@@ -59,6 +69,15 @@
     return 'saurabh.dey@identiq.in';
   }
 
+  function getMySignature() {
+    var rc = getRcmail();
+    if (rc && rc.env && rc.env.identities && rc.env.identities[0]) {
+      var id = rc.env.identities[0];
+      return id.signature || id.html_signature || '';
+    }
+    return '';
+  }
+
   function cleanSubjectKey(subject) {
     return (subject || '')
       .replace(/^(re|fwd|fw):\s*/gi, '')
@@ -72,13 +91,11 @@
     if (!dateStr) return 0;
     var str = String(dateStr).trim();
 
-    // Standard RFC Date parse
     var parsed = Date.parse(str);
     if (!isNaN(parsed) && !str.toLowerCase().includes('today') && !str.toLowerCase().includes('just now')) {
       return parsed;
     }
 
-    // Extract HH:MM[:SS] [AM|PM]
     var timeMatch = str.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
     var hours = 0, mins = 0;
     if (timeMatch) {
@@ -91,21 +108,22 @@
       }
     }
 
-    // Extract YYYY-MM-DD
     var dateMatch = str.match(/(\d{4})-(\d{2})-(\d{2})/);
     if (dateMatch) {
       return new Date(parseInt(dateMatch[1], 10), parseInt(dateMatch[2], 10) - 1, parseInt(dateMatch[3], 10), hours, mins).getTime();
     }
 
-    // If "Just now"
     if (str.toLowerCase().includes('just now')) {
       return Date.now() + 10000;
     }
 
-    // Default: treat as today with extracted hours/minutes
     var today = new Date();
     today.setHours(hours, mins, 0, 0);
     return today.getTime();
+  }
+
+  function sortChronological(a, b) {
+    return parseTimestamp(a.date) - parseTimestamp(b.date);
   }
 
   // Merge and deduplicate thread messages, preserving strict chronological order
@@ -131,8 +149,31 @@
     return result.sort(sortChronological);
   }
 
-  function sortChronological(a, b) {
-    return parseTimestamp(a.date) - parseTimestamp(b.date);
+  // Extract attachments from original message DOM
+  function extractOriginalAttachments(doc) {
+    var list = [];
+    if (!doc) return list;
+    var items = doc.querySelectorAll('#attachment-list li, .attachmentslist li, [id*="attachment"] a, a[href*="_action=get"]');
+    items.forEach(function (el) {
+      var a = el.tagName === 'A' ? el : el.querySelector('a');
+      if (!a) return;
+      var name = a.innerText.trim() || a.getAttribute('title') || 'attachment';
+      var href = a.getAttribute('href') || '';
+      if (!href) return;
+      var sizeText = '';
+      var sizeEl = el.querySelector('.attachment-size, .size');
+      if (sizeEl) sizeText = sizeEl.innerText.trim();
+
+      var ext = name.split('.').pop().toLowerCase();
+      var type = 'file';
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].indexOf(ext) > -1) type = 'img';
+      else if (ext === 'pdf') type = 'pdf';
+      else if (['zip', 'tar', 'gz', 'rar', '7z'].indexOf(ext) > -1) type = 'zip';
+      else if (['doc', 'docx', 'txt', 'rtf', 'odt', 'csv', 'xlsx'].indexOf(ext) > -1) type = 'doc';
+
+      list.push({ name: name, href: href, size: sizeText, type: type });
+    });
+    return list;
   }
 
   // =========================================================================
@@ -164,6 +205,13 @@
 
     var toEl = msgHeader.querySelector('.to .adr, .to');
     if (toEl) recipientText = toEl.innerText.trim();
+
+    // Check if multiple recipients exist
+    var hasCc = !!msgHeader.querySelector('.cc, .bcc');
+    var isMultiRecipient = hasCc || (recipientText.indexOf(',') > -1) || (recipientText.indexOf(';') > -1);
+
+    // Extract attachments from original message
+    var attachments = extractOriginalAttachments(document);
 
     // Hide default header
     msgHeader.style.display = 'none';
@@ -198,7 +246,7 @@
     threadMessages.sort(sortChronological);
 
     // Render Cards in Stack
-    renderCards(threadContainer, threadMessages, recipientText, senderText, subjectText);
+    renderCards(threadContainer, threadMessages, recipientText, senderText, subjectText, isMultiRecipient, attachments);
 
     // Replace original msgBody with new Thread Container
     msgBody.style.display = 'none';
@@ -208,12 +256,10 @@
   }
 
   // Render all thread cards in chronological sequence
-  function renderCards(threadContainer, threadMessages, recipientText, senderText, subjectText) {
-    // Clear any previous cards before rendering
+  function renderCards(threadContainer, threadMessages, recipientText, senderText, subjectText, isMultiRecipient, attachments) {
     var oldCards = threadContainer.querySelectorAll('.gm-thread-card, .bm-action-pills-container');
     oldCards.forEach(function (c) { c.remove(); });
 
-    // Always ensure chronological order
     threadMessages.sort(sortChronological);
 
     threadMessages.forEach(function (msg, idx) {
@@ -226,11 +272,25 @@
       var avatarInitial = getInitial(authorName);
       var avatarColor = getAvatarColor(authorName);
 
-      // Clean body text (strip any accidental leaked quote intro or HTML tags)
       var cleanText = cleanBodyDisplay(msg.bodyText);
 
       if (isLatest) {
         // Expanded Latest Card (Active Email at Bottom)
+        var attachHtml = '';
+        if (attachments && attachments.length > 0) {
+          attachHtml = '<div class="gm-msg-attachments">' +
+            attachments.map(function (att) {
+              return '<a href="' + escapeHtml(att.href) + '" class="gm-attachment-card" target="_blank" download="' + escapeHtml(att.name) + '">' +
+                '<div class="gm-attach-icon ' + att.type + '">' + att.type.toUpperCase() + '</div>' +
+                '<div class="gm-attach-meta">' +
+                  '<span class="gm-attach-filename" title="' + escapeHtml(att.name) + '">' + escapeHtml(att.name) + '</span>' +
+                  '<span class="gm-attach-filesize">' + escapeHtml(att.size || 'Download') + '</span>' +
+                '</div>' +
+              '</a>';
+            }).join('') +
+          '</div>';
+        }
+
         card.innerHTML = 
           '<div class="gm-thread-header">' +
             '<div class="gm-author-meta">' +
@@ -248,17 +308,22 @@
           '</div>' +
           '<div class="gm-message-body">' +
             '<div class="gm-main-text">' + escapeHtml(cleanText) + '</div>' +
+            attachHtml +
           '</div>';
+
+        // Hovercard for author avatar
+        var avEl = card.querySelector('.gm-avatar');
+        initHovercard(avEl, authorName, senderText);
 
         var qIcon = card.querySelector('.gm-btn-quick-reply-icon');
         if (qIcon) {
           qIcon.onclick = function (e) {
             e.stopPropagation();
-            openInlineReply(threadContainer, authorName, subjectText, threadMessages);
+            openInlineReply(threadContainer, authorName, subjectText, threadMessages, false);
           };
         }
       } else {
-        // Compact Collapsed Previous Message Card (Exact Gmail Row)
+        // Compact Collapsed Previous Message Card
         card.innerHTML = 
           '<div class="gm-avatar" style="width:28px; height:28px; font-size:13px; background:' + avatarColor + '">' + avatarInitial + '</div>' +
           '<span class="gm-collapsed-author">' + escapeHtml(authorName) + '</span>' +
@@ -268,13 +333,16 @@
         card.onclick = function () {
           toggleCardExpansion(card, msg, recipientText);
         };
+
+        var cAv = card.querySelector('.gm-avatar');
+        initHovercard(cAv, authorName, senderText);
       }
 
       threadContainer.appendChild(card);
     });
 
-    // Bottom Action Pills (Reply, Forward)
-    renderBottomPills(threadContainer, senderText, subjectText, threadMessages);
+    // Bottom Action Pills (Reply, Reply All, Forward)
+    renderBottomPills(threadContainer, senderText, subjectText, threadMessages, isMultiRecipient);
   }
 
   // Clean raw body text: strip trailing quote intros and HTML tags
@@ -285,7 +353,7 @@
       .replace(/<blockquote[\s\S]*/i, '')
       .replace(/<p[^>]*id="?reply-intro"?[\s\S]*/i, '')
       .replace(/On\s+[0-9]{4}-[0-9]{2}-[0-9]{2}[\s\S]*?wrote:?[\s\S]*/i, '')
-      .replace(/<[^>]+>/g, '') // Strip residual HTML tags
+      .replace(/<[^>]+>/g, '')
       .trim();
     return cleaned || text.replace(/<[^>]+>/g, '').trim();
   }
@@ -326,20 +394,17 @@
     }
   }
 
-  // Extract all messages: supports DOM blockquotes AND raw text pseudo-HTML quotes
+  // Extract all messages from text or blockquotes
   function extractAllThreadMessages(msgBody, currentSender, currentDate) {
     var rawText = msgBody.innerText || msgBody.textContent || '';
     var messages = [];
 
-    // Check for string-based blockquotes / reply-intro markers in raw text
     var hasPseudoQuotes = /<blockquote|<p[^>]*id="?reply-intro"?|class="?pre"?/i.test(rawText);
 
     if (hasPseudoQuotes) {
-      // Split off the latest reply (everything before first reply intro or blockquote)
       var splitParts = rawText.split(/<br\s*\/?>\s*<p[^>]*id="?reply-intro"?|<blockquote|<p[^>]*id="?reply-intro"?/i);
       var latestBody = (splitParts[0] || '').trim();
 
-      // Find all "On <date>, <author> wrote:"
       var onWroteRegex = /On\s+([0-9]{4}-[0-9]{2}-[0-9]{2}[^,\n<]*|[^,\n<]+,\s+[^<]+)\s*,\s*([^<>\n]+(?:<[^>]+>)?)\s+wrote:?/gi;
       var intros = [];
       var match;
@@ -347,30 +412,25 @@
         intros.push(match);
       }
 
-      // Find innermost quote (deepest message, e.g. "hello")
       var innerMatch = rawText.match(/<blockquote>(?:<[^>]+>)*\s*([^<]+)\s*(?:<\/[^>]+>)*<\/blockquote>/i);
       var deepestBody = innerMatch ? innerMatch[1].trim() : '';
 
-      // Find middle quote (first reply, e.g. "hello hi")
       var middleMatch = rawText.match(/<\/blockquote>\s*([^<]+)\s*<\/div>/i);
       var middleBody = middleMatch ? middleMatch[1].trim() : '';
 
       if (intros.length >= 2 && deepestBody && middleBody) {
-        // Earliest (Message 1)
         messages.push({
           author: intros[1][2].trim(),
           date: intros[1][1].trim(),
           bodyText: deepestBody
         });
 
-        // Middle (Message 2)
         messages.push({
           author: intros[0][2].trim(),
           date: intros[0][1].trim(),
           bodyText: middleBody
         });
 
-        // Latest (Message 3)
         messages.push({
           author: currentSender,
           date: currentDate,
@@ -406,7 +466,6 @@
       }];
     }
 
-    // Sort by depth
     bqs.sort(function (a, b) {
       var dA = 0, pA = a.parentElement;
       while (pA) { if (pA.tagName === 'BLOCKQUOTE' || (pA.classList && pA.classList.contains('quote_level_1'))) dA++; pA = pA.parentElement; }
@@ -417,7 +476,6 @@
 
     var onWroteRegex2 = /On\s+([0-9]{4}-[0-9]{2}-[0-9]{2}[^,\n<]*|[^,\n<]+,\s+[^<]+)\s*,\s*([^<>\n]+(?:<[^>]+>)?)\s+wrote:?/i;
 
-    // Deepest quote
     var deepestBq = bqs[0];
     var msg1Text = cleanBodyDisplay(deepestBq.innerText);
     var textBefore1 = '';
@@ -439,7 +497,6 @@
 
     if (deepestBq.parentNode) deepestBq.remove();
 
-    // Middle quote if any
     var outerBq = bqs.find(function (b) { return b !== deepestBq; });
     if (outerBq) {
       var msg2Text = cleanBodyDisplay(outerBq.innerText);
@@ -458,7 +515,6 @@
       if (outerBq.parentNode) outerBq.remove();
     }
 
-    // Root message text
     var latestText = cleanBodyDisplay(container.innerText);
     messages.push({
       author: currentSender,
@@ -470,9 +526,9 @@
   }
 
   // =========================================================================
-  // 2. Bottom Action Pills & Inline Quick-Reply Composer
+  // 2. Bottom Action Pills & Multi-Recipient "Reply All"
   // =========================================================================
-  function renderBottomPills(container, sender, subject, threadMessages) {
+  function renderBottomPills(container, sender, subject, threadMessages, isMultiRecipient) {
     if (container.querySelector('.bm-action-pills-container')) return;
 
     var pillBox = document.createElement('div');
@@ -485,8 +541,22 @@
     replyBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> <span>Reply</span>';
     replyBtn.onclick = function (e) {
       e.preventDefault();
-      openInlineReply(container, sender, subject, threadMessages);
+      openInlineReply(container, sender, subject, threadMessages, false);
     };
+    pillBox.appendChild(replyBtn);
+
+    // [ 👥 Reply All ] (Feature 2: Multi-Recipient)
+    if (isMultiRecipient) {
+      var replyAllBtn = document.createElement('button');
+      replyAllBtn.type = 'button';
+      replyAllBtn.className = 'bm-action-pill bm-action-pill-replyall';
+      replyAllBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M7 8V5l-7 7 7 7v-3l-4-4 4-4zm6 1V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg> <span>Reply all</span>';
+      replyAllBtn.onclick = function (e) {
+        e.preventDefault();
+        openInlineReply(container, sender, subject, threadMessages, true);
+      };
+      pillBox.appendChild(replyAllBtn);
+    }
 
     // [ ↪ Forward ]
     var forwardBtn = document.createElement('button');
@@ -498,15 +568,15 @@
       var rc = getRcmail();
       if (rc) rc.command('forward', '', this, e);
     };
-
-    pillBox.appendChild(replyBtn);
     pillBox.appendChild(forwardBtn);
 
     container.appendChild(pillBox);
   }
 
-  // Open Gmail Inline Quick Reply Box
-  function openInlineReply(container, recipient, subject, threadMessages) {
+  // =========================================================================
+  // 3. Inline Quick Reply with Attachments & Signature
+  // =========================================================================
+  function openInlineReply(container, recipient, subject, threadMessages, isReplyAll) {
     var existingBox = container.querySelector('.gm-inline-reply-box');
     if (existingBox) {
       var textarea = existingBox.querySelector('.gm-reply-textarea');
@@ -517,25 +587,34 @@
     var pills = container.querySelector('.bm-action-pills-container');
     if (pills) pills.style.display = 'none';
 
+    var myName = getMyName();
     var myEmail = getMyEmail();
     var myAvatarColor = getAvatarColor(myEmail);
-    var myInitial = getInitial(myEmail);
+    var myInitial = getInitial(myName);
+
+    var replyLabel = isReplyAll ? '👥 Reply all' : '↩ Reply';
 
     var replyBox = document.createElement('div');
     replyBox.className = 'gm-inline-reply-box';
     replyBox.innerHTML = 
       '<div class="gm-inline-header">' +
         '<div class="gm-avatar" style="width:28px; height:28px; font-size:12px; background:' + myAvatarColor + '">' + myInitial + '</div>' +
-        '<span class="gm-reply-label">↩ Reply</span>' +
+        '<span class="gm-reply-label">' + replyLabel + '</span>' +
         '<span class="gm-reply-to">' + escapeHtml(recipient || 'Recipient') + '</span>' +
         '<button type="button" class="gm-inline-popout" title="Pop-out to full editor">↗</button>' +
       '</div>' +
-      '<textarea class="gm-reply-textarea" placeholder="Reply to ' + escapeHtml(recipient || '') + '..."></textarea>' +
+      '<textarea class="gm-reply-textarea" placeholder="' + (isReplyAll ? 'Reply to all...' : 'Reply to ' + escapeHtml(recipient || '') + '...') + '"></textarea>' +
+      '<div class="gm-attachment-chip-list" style="display:none"></div>' +
+      '<input type="file" multiple class="gm-inline-file-input" style="display:none">' +
       '<div class="gm-inline-footer">' +
         '<div class="gm-footer-left">' +
           '<button type="button" class="gm-send-pill-btn">' +
             '<svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>' +
             '<span>Send</span>' +
+          '</button>' +
+          '<button type="button" class="gm-attach-btn" title="Attach files">' +
+            '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5V6H9v9.5a3 3 0 0 0 6 0V5a4 4 0 0 0-8 0v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>' +
+            '<span>Attach</span>' +
           '</button>' +
           '<span style="font-size:11px; color:#80868b; margin-left:8px;">Ctrl+Enter</span>' +
         '</div>' +
@@ -556,9 +635,65 @@
       this.style.height = (this.scrollHeight) + 'px';
     });
 
+    // Attachment handling (Feature 1: Inline attachments & drag-and-drop)
+    var attachedFiles = [];
+    var fileInput = replyBox.querySelector('.gm-inline-file-input');
+    var attachBtn = replyBox.querySelector('.gm-attach-btn');
+    var chipList = replyBox.querySelector('.gm-attachment-chip-list');
+
+    attachBtn.onclick = function () { fileInput.click(); };
+
+    function renderAttachedChips() {
+      chipList.innerHTML = '';
+      if (attachedFiles.length === 0) {
+        chipList.style.display = 'none';
+        return;
+      }
+      chipList.style.display = 'flex';
+      attachedFiles.forEach(function (file, idx) {
+        var chip = document.createElement('div');
+        chip.className = 'gm-attach-chip';
+        chip.innerHTML = '<span class="chip-name">' + escapeHtml(file.name) + '</span><span class="chip-size">' + formatBytes(file.size) + '</span><button type="button" class="chip-remove" title="Remove">✕</button>';
+        chip.querySelector('.chip-remove').onclick = function () {
+          attachedFiles.splice(idx, 1);
+          renderAttachedChips();
+        };
+        chipList.appendChild(chip);
+      });
+    }
+
+    function addFiles(files) {
+      if (!files) return;
+      Array.from(files).forEach(function (f) {
+        attachedFiles.push(f);
+      });
+      renderAttachedChips();
+    }
+
+    fileInput.onchange = function () {
+      addFiles(fileInput.files);
+    };
+
+    // Drag and drop listeners on replyBox
+    replyBox.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      replyBox.classList.add('gm-dropzone-active');
+    });
+    replyBox.addEventListener('dragleave', function (e) {
+      e.preventDefault();
+      replyBox.classList.remove('gm-dropzone-active');
+    });
+    replyBox.addEventListener('drop', function (e) {
+      e.preventDefault();
+      replyBox.classList.remove('gm-dropzone-active');
+      if (e.dataTransfer && e.dataTransfer.files) {
+        addFiles(e.dataTransfer.files);
+      }
+    });
+
     replyBox.querySelector('.gm-inline-popout').onclick = function () {
       var rc = getRcmail();
-      if (rc) rc.command('reply', '', this);
+      if (rc) rc.command(isReplyAll ? 'reply-all' : 'reply', '', this);
     };
 
     replyBox.querySelector('.gm-discard-btn').onclick = function () {
@@ -569,21 +704,20 @@
     var sendBtn = replyBox.querySelector('.gm-send-pill-btn');
     var sendAction = function () {
       var replyText = textarea.value.trim();
-      if (!replyText) return;
+      if (!replyText && attachedFiles.length === 0) return;
 
       sendBtn.disabled = true;
       sendBtn.innerHTML = '<span>Sending...</span>';
 
-      sendInlineReply(replyText, recipient, subject, function (success, err) {
+      sendInlineReply(replyText, recipient, subject, attachedFiles, isReplyAll, function (success, err) {
         if (success) {
           var now = new Date();
           var timeStr = 'Today ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
 
-          var myName = getMyName();
           var newMsg = {
             author: myName,
             date: timeStr,
-            bodyText: replyText
+            bodyText: replyText || (attachedFiles.length + ' attachment(s) sent')
           };
 
           var threadKey = cleanSubjectKey(subject);
@@ -595,7 +729,7 @@
           } catch (e) {}
 
           replyBox.remove();
-          renderCards(container, threadMessages, recipient, myName, subject);
+          renderCards(container, threadMessages, recipient, myName, subject, false, []);
 
           showToast('Message sent.');
 
@@ -620,7 +754,7 @@
   }
 
   // Send reply using Roundcube's compose session
-  function sendInlineReply(text, recipient, subject, callback) {
+  function sendInlineReply(text, recipient, subject, files, isReplyAll, callback) {
     var rc = getRcmail();
     if (!rc || !rc.env) {
       return callback(false, 'Roundcube session not found');
@@ -632,6 +766,7 @@
     }
     var mbox = rc.env.mailbox || 'INBOX';
 
+    var composeAction = isReplyAll ? 'reply-all' : 'reply';
     fetch('/roundcube/?_task=mail&_action=compose&_reply_uid=' + uid + '&_mbox=' + encodeURIComponent(mbox), {
       credentials: 'same-origin'
     })
@@ -653,12 +788,31 @@
       var existingMsg = fd.get('_message') || '';
       var cleanText = escapeHtml(text).replace(/\n/g, '<br>');
       var htmlBody = '<div dir="ltr">' + cleanText + '</div>';
+
+      // Feature 5: Signature insertion
+      var sig = getMySignature();
+      if (sig) {
+        htmlBody += '<br><div class="signature">--<br>' + sig.replace(/\n/g, '<br>') + '</div>';
+      }
+
       if (existingMsg) {
         htmlBody += '<br><div class="gmail_quote">' + existingMsg + '</div>';
       }
+
       fd.set('_message', htmlBody);
       fd.set('_is_html', '1');
       fd.set('_action', 'send');
+
+      if (isReplyAll) {
+        fd.set('_reply_all', '1');
+      }
+
+      // Feature 1: Attach files to FormData
+      if (files && files.length > 0) {
+        files.forEach(function (f) {
+          fd.append('_attachments[]', f, f.name);
+        });
+      }
 
       return fetch('/roundcube/?_task=mail&_action=send', {
         method: 'POST',
@@ -675,6 +829,131 @@
     })
     .catch(function (err) {
       callback(false, err.message);
+    });
+  }
+
+  // Feature 6: Google Workspace Style Sender Profile Hovercard
+  var hoverTimer = null;
+  function initHovercard(avatarEl, name, email) {
+    if (!avatarEl) return;
+    avatarEl.addEventListener('mouseenter', function () {
+      hoverTimer = setTimeout(function () {
+        showHovercard(avatarEl, name, email);
+      }, 300);
+    });
+    avatarEl.addEventListener('mouseleave', function () {
+      if (hoverTimer) clearTimeout(hoverTimer);
+    });
+  }
+
+  function showHovercard(targetEl, name, email) {
+    removeHovercard();
+    var card = document.createElement('div');
+    card.className = 'gm-hovercard';
+
+    var color = getAvatarColor(name || email);
+    var initial = getInitial(name || email);
+
+    card.innerHTML = 
+      '<div class="gm-hovercard-header">' +
+        '<div class="gm-hovercard-avatar" style="background:' + color + '">' + initial + '</div>' +
+        '<div class="gm-hovercard-info">' +
+          '<div class="gm-hovercard-name">' + escapeHtml(name || 'Sender') + '</div>' +
+          '<div class="gm-hovercard-email">' + escapeHtml(email || '') + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="gm-hovercard-actions">' +
+        '<button type="button" class="gm-hovercard-btn gm-copy-btn">📋 Copy</button>' +
+        '<button type="button" class="gm-hovercard-btn gm-search-btn">🔍 Search</button>' +
+        '<button type="button" class="gm-hovercard-btn primary gm-compose-btn">✉ Email</button>' +
+      '</div>';
+
+    var rect = targetEl.getBoundingClientRect();
+    card.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+    card.style.left = Math.max(16, (rect.left + window.scrollX - 20)) + 'px';
+
+    document.body.appendChild(card);
+
+    card.querySelector('.gm-copy-btn').onclick = function () {
+      var toCopy = email || name || '';
+      navigator.clipboard.writeText(toCopy);
+      this.innerText = '✓ Copied!';
+      var self = this;
+      setTimeout(function () { self.innerText = '📋 Copy'; }, 2000);
+    };
+
+    card.querySelector('.gm-search-btn').onclick = function () {
+      removeHovercard();
+      var rc = getRcmail();
+      var q = email || name || '';
+      if (rc && rc.search) rc.search('from:' + q);
+    };
+
+    card.querySelector('.gm-compose-btn').onclick = function () {
+      removeHovercard();
+      var rc = getRcmail();
+      if (rc) rc.command('compose', email || '', this);
+    };
+
+    card.addEventListener('mouseleave', function () {
+      removeHovercard();
+    });
+  }
+
+  function removeHovercard() {
+    var old = document.querySelector('.gm-hovercard');
+    if (old) old.remove();
+  }
+
+  // Feature 4: Gmail Single-Key Keyboard Shortcuts
+  function initKeyboardShortcuts() {
+    window.addEventListener('keydown', function (e) {
+      var tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) {
+        if (e.key === 'Escape') {
+          var activeBox = document.querySelector('.gm-inline-reply-box');
+          if (activeBox) activeBox.remove();
+          removeHovercard();
+        }
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      var rc = getRcmail();
+      if (e.key === 'r') {
+        e.preventDefault();
+        var rBtn = document.querySelector('.bm-action-pill');
+        if (rBtn) rBtn.click();
+      } else if (e.key === 'a') {
+        e.preventDefault();
+        var rAllBtn = document.querySelector('.bm-action-pill-replyall') || document.querySelector('.bm-action-pill');
+        if (rAllBtn) rAllBtn.click();
+      } else if (e.key === 'f') {
+        e.preventDefault();
+        if (rc) rc.command('forward', '', this);
+      } else if (e.key === 'j') {
+        e.preventDefault();
+        if (rc && rc.message_list && rc.message_list.select_next) rc.message_list.select_next();
+      } else if (e.key === 'k') {
+        e.preventDefault();
+        if (rc && rc.message_list && rc.message_list.select_prev) rc.message_list.select_prev();
+      } else if (e.key === 'e') {
+        e.preventDefault();
+        if (rc) rc.command('plugin.archive', '', this);
+      } else if (e.key === '#') {
+        e.preventDefault();
+        if (rc) rc.command('delete', '', this);
+      } else if (e.key === '/') {
+        e.preventDefault();
+        var searchInput = (window.parent ? window.parent.document : document).querySelector('#mailsearchbox, input[name="_q"]');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      } else if (e.key === 'Escape') {
+        removeHovercard();
+      }
     });
   }
 
@@ -738,6 +1017,7 @@
   function init() {
     transformThreadView();
     hookComposeForm();
+    initKeyboardShortcuts();
 
     var observer = new MutationObserver(function () {
       transformThreadView();

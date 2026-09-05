@@ -660,3 +660,261 @@ header.header,
     color: #c2e7ff !important;
   }
 }
+
+/* ==========================================================================
+   11. Advanced Features: Attachments, Hovercard, Reply All & Shortcuts
+   ========================================================================== */
+
+/* Inline Reply Attachment Upload & Dropzone */
+.gm-dropzone-active {
+  border-color: var(--gm-blue) !important;
+  background: rgba(26, 115, 232, 0.04) !important;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2) !important;
+}
+
+.gm-attach-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--gm-border);
+  border-radius: 18px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gm-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: 8px;
+}
+
+.gm-attach-btn:hover {
+  background: var(--gm-bg-card-hover);
+  color: var(--gm-text-primary);
+  border-color: #c4c7c5;
+}
+
+.gm-attachment-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f8fafd;
+  border-top: 1px solid var(--gm-border-light);
+}
+
+.gm-attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  color: var(--gm-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.gm-attach-chip .chip-name {
+  font-weight: 500;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-attach-chip .chip-size {
+  color: var(--gm-text-muted);
+  font-size: 10.5px;
+}
+
+.gm-attach-chip .chip-remove {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--gm-text-muted);
+  padding: 0 2px;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gm-attach-chip .chip-remove:hover {
+  color: #d93025;
+}
+
+/* Attachment Cards in Message Body */
+.gm-msg-attachments {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gm-border-light);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.gm-attachment-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #ffffff;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  box-shadow: var(--gm-shadow-card);
+  transition: all 0.2s ease;
+  text-decoration: none !important;
+  color: var(--gm-text-primary) !important;
+}
+
+.gm-attachment-card:hover {
+  box-shadow: var(--gm-shadow-hover);
+  border-color: #c4c7c5;
+  background: #fafbfd;
+}
+
+.gm-attach-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 10px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.gm-attach-icon.pdf { background: #ea4335; }
+.gm-attach-icon.img { background: #34a853; }
+.gm-attach-icon.zip { background: #fbbc04; color: #202124; }
+.gm-attach-icon.doc { background: #4285f4; }
+.gm-attach-icon.file { background: #5f6368; }
+
+.gm-attach-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.gm-attach-filename {
+  font-size: 12.5px;
+  font-weight: 500;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-attach-filesize {
+  font-size: 11px;
+  color: var(--gm-text-muted);
+}
+
+/* Google Workspace Style Sender Profile Hovercard */
+.gm-hovercard {
+  position: absolute;
+  z-index: 10000;
+  width: 290px;
+  background: #ffffff;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: gmFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes gmFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gm-hovercard-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gm-hovercard-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.gm-hovercard-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gm-hovercard-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gm-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gm-hovercard-email {
+  font-size: 12.5px;
+  color: var(--gm-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gm-hovercard-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--gm-border-light);
+  padding-top: 12px;
+}
+
+.gm-hovercard-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--gm-bg-app);
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gm-text-primary);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.gm-hovercard-btn:hover {
+  background: var(--gm-bg-card-hover);
+  border-color: #c4c7c5;
+}
+
+.gm-hovercard-btn.primary {
+  background: var(--gm-blue);
+  color: #ffffff;
+  border-color: var(--gm-blue);
+}
+
+.gm-hovercard-btn.primary:hover {
+  background: var(--gm-blue-hover);
+}
+
